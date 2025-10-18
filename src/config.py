@@ -45,7 +45,7 @@ ORGAN_KEYWORDS = {
 }
 
 # Default settings
-DEFAULT_OUTPUT_DIR = "../data/totalsegmentator_output"
+DEFAULT_OUTPUT_DIR = "data/totalsegmentator_output"
 DEFAULT_PLAYBACK_SPEED = 100  # milliseconds between frames
 DEFAULT_PLAYBACK_FPS = 10
 DEFAULT_WINDOW_SIZE = (1800, 1200)
