@@ -1,0 +1,7 @@
+PyQt5
+numpy
+nibabel
+SimpleITK
+totalsegmentator
+torch
+torchvision
