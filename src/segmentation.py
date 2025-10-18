@@ -8,8 +8,8 @@ import numpy as np
 import nibabel as nib
 from totalsegmentator.python_api import totalsegmentator
 
-from config import ORGAN_GROUPS_SIMPLE, HEART_COLOR_GROUPS
-from utils import match_shape
+from .config import ORGAN_GROUPS_SIMPLE, HEART_COLOR_GROUPS
+from .utils import match_shape
 
 
 class SegmentationManager:

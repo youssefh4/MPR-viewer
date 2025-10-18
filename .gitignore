@@ -28,9 +28,13 @@ Thumbs.db
 *.dcm
 *.nii
 *.nii.gz
-totalsegmentator_output/
 
-# Model files
-*.pth
-*.pt
-*.pkl
+# Data directory (keep structure but ignore contents)
+data/totalsegmentator_output/*
+!data/totalsegmentator_output/.gitkeep
+
+# Model files (keep structure but ignore large files)
+models/*.pth
+models/*.pt
+models/*.pkl
+!models/.gitkeep

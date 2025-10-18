@@ -15,11 +15,11 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve, pyqtSignal
 from PyQt5.QtGui import QFont
 
-from ui_components import CollapsibleBox, SliceView
-from data_loader import DataLoader
-from segmentation import SegmentationManager
-from utils import get_oblique_slice
-from config import DEFAULT_OUTPUT_DIR, DEFAULT_PLAYBACK_SPEED, DEFAULT_WINDOW_SIZE, DEFAULT_MIN_WINDOW_SIZE
+from .ui_components import CollapsibleBox, SliceView
+from .data_loader import DataLoader
+from .segmentation import SegmentationManager
+from .utils import get_oblique_slice
+from .config import DEFAULT_OUTPUT_DIR, DEFAULT_PLAYBACK_SPEED, DEFAULT_WINDOW_SIZE, DEFAULT_MIN_WINDOW_SIZE
 
 
 class DICOM_MPR_Viewer(QWidget):
