@@ -9,8 +9,8 @@ import nibabel as nib
 import SimpleITK as sitk
 from PyQt5.QtWidgets import QFileDialog, QMessageBox
 
-from .utils import detect_main_plane_dicom, detect_orientation_ai, match_shape, TORCH_AVAILABLE
-from .config import ORGAN_KEYWORDS
+from utils import detect_main_plane_dicom, detect_orientation_ai, match_shape, TORCH_AVAILABLE
+from config import ORGAN_KEYWORDS
 
 
 class DataLoader:
