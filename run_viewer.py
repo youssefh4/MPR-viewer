@@ -11,7 +11,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 from PyQt5.QtWidgets import QApplication
-from mpr_viewer import DICOM_MPR_Viewer
+from src.mpr_viewer import DICOM_MPR_Viewer
 
 def main():
     """Main entry point for the MPR Viewer application."""
