@@ -38,3 +38,6 @@ models/*.pth
 models/*.pt
 models/*.pkl
 !models/.gitkeep
+
+# Private/local scripts
+update_repo.py
