@@ -58,8 +58,8 @@ class CollapsibleBox(QWidget):
 
         self.content_area = QWidget()
         self.content_layout = QVBoxLayout()
-        self.content_layout.setSpacing(8)
-        self.content_layout.setContentsMargins(12, 8, 12, 12)
+        self.content_layout.setSpacing(4)
+        self.content_layout.setContentsMargins(8, 6, 8, 8)
         self.content_area.setLayout(self.content_layout)
         
         # Animation setup
@@ -96,6 +96,62 @@ class CollapsibleBox(QWidget):
     def addLayout(self, layout):
         """Add a layout to the content area."""
         self.content_layout.addLayout(layout)
+        
+    def set_dark_mode(self, enabled):
+        """Apply dark mode styling to the collapsible box."""
+        if enabled:
+            self.toggle_button.setStyleSheet("""
+                QToolButton {
+                    border: none;
+                    padding: 6px;
+                    text-align: left;
+                    font-weight: bold;
+                    font-size: 11px;
+                    background-color: #2d2d2d;
+                    border-radius: 6px;
+                    color: #ffffff;
+                }
+                QToolButton:hover {
+                    background-color: #3a3a3a;
+                }
+                QToolButton:pressed {
+                    background-color: #1a1a1a;
+                }
+            """)
+            self.setStyleSheet("""
+                CollapsibleBox {
+                    background-color: #1e1e1e;
+                    border: 1px solid #404040;
+                    border-radius: 8px;
+                    margin: 4px;
+                }
+            """)
+        else:
+            self.toggle_button.setStyleSheet("""
+                QToolButton {
+                    border: none;
+                    padding: 6px;
+                    text-align: left;
+                    font-weight: bold;
+                    font-size: 11px;
+                    background-color: #f8f9fa;
+                    border-radius: 6px;
+                }
+                QToolButton:hover {
+                    background-color: #e9ecef;
+                }
+                QToolButton:pressed {
+                    background-color: #dee2e6;
+                }
+            """)
+            self.setStyleSheet("""
+                CollapsibleBox {
+                    background-color: #f8f9fa;
+                    border: 1px solid #d0d7de;
+                    border-radius: 8px;
+                    margin: 4px;
+                }
+            """)
 
 
 class SliceView(QWidget):
@@ -117,6 +173,7 @@ class SliceView(QWidget):
         self.click_mode = "crosshair"  # "crosshair" or "roi"
         self.roi_start_point = None  # Store the starting point for rectangular ROI
         self.roi_drawing = False  # Track if we're currently drawing ROI
+        self.is_dark_mode = False  # Track dark mode state
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(5, 5, 5, 5)
@@ -338,6 +395,56 @@ class SliceView(QWidget):
             print(f"ROI selection error: {e}")
             pass
 
+    def set_dark_mode(self, enabled):
+        """Apply dark or light styling to the view canvas and labels."""
+        self.is_dark_mode = enabled
+        bg = '#1e1e1e' if enabled else 'white'
+        fg = '#ffffff' if enabled else '#2c3e50'
+        
+        # Update matplotlib canvas background
+        self.ax.set_facecolor(bg)
+        if self.canvas.figure is not None:
+            self.canvas.figure.set_facecolor(bg)
+            
+        # Update label styling
+        self.title_label.setStyleSheet(f"""
+            QLabel {{
+                color: {fg};
+                font-weight: bold;
+                font-size: 12px;
+                padding: 2px;
+            }}
+        """)
+        self.slice_label.setStyleSheet(f"""
+            QLabel {{
+                color: {fg};
+                font-size: 11px;
+                padding: 2px;
+            }}
+        """)
+        
+        # Update slider styling
+        self.slider.setStyleSheet(f"""
+            QSlider::groove:horizontal {{
+                border: 1px solid {'#404040' if enabled else '#bdc3c7'};
+                height: 6px;
+                background: {'#2d2d2d' if enabled else '#ecf0f1'};
+                border-radius: 3px;
+            }}
+            QSlider::handle:horizontal {{
+                background: {'#0d7377' if enabled else '#3498db'};
+                border: 2px solid #ffffff;
+                width: 16px;
+                margin: -5px 0;
+                border-radius: 8px;
+            }}
+        """)
+        
+        # Update canvas styling
+        self.canvas.setStyleSheet(f"background-color: {bg}; border: 1px solid {'#404040' if enabled else '#cccccc'}; border-radius: 6px;")
+        
+        # Force redraw
+        self.canvas.draw_idle()
 
     def set_roi_zoom(self, enabled):
         self.roi_zoom_enabled = enabled
@@ -385,7 +492,7 @@ class SliceView(QWidget):
             
             self.ax.clear()
             # Set the axis background color based on dark mode
-            bg_color = 'white'
+            bg_color = '#1e1e1e' if self.is_dark_mode else 'white'
             self.ax.set_facecolor(bg_color)
             
             # Use appropriate colormap
@@ -404,7 +511,7 @@ class SliceView(QWidget):
                     self.slice_label.setText(f"Slice: {clamped_idx} (clamped from {idx})")
                     self.ax.clear()
                     # Set the axis background color
-                    bg_color = 'white'
+                    bg_color = '#1e1e1e' if self.is_dark_mode else 'white'
                     self.ax.set_facecolor(bg_color)
                     self.ax.imshow(np.rot90(img), cmap="gray")
                     self.ax.axis("off")

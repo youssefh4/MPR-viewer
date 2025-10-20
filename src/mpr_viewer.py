@@ -175,8 +175,8 @@ class DICOM_MPR_Viewer(QWidget):
         """Create the left sidebar with all control panels."""
         sidebar = QScrollArea()
         sidebar.setWidgetResizable(True)
-        sidebar.setMaximumWidth(280)
-        sidebar.setMinimumWidth(280)
+        sidebar.setMaximumWidth(320)
+        sidebar.setMinimumWidth(320)
         # Sidebar styling will be handled by the main dark mode styling
         sidebar.setStyleSheet("""
             QScrollArea {
@@ -188,8 +188,8 @@ class DICOM_MPR_Viewer(QWidget):
         sidebar_content = QWidget()
         sidebar_content.setObjectName("sidebar_content")
         sidebar_layout = QVBoxLayout(sidebar_content)
-        sidebar_layout.setSpacing(10)
-        sidebar_layout.setContentsMargins(10, 10, 10, 10)
+        sidebar_layout.setSpacing(6)
+        sidebar_layout.setContentsMargins(8, 8, 8, 8)
 
         # Add all control groups
         sidebar_layout.addWidget(self._create_load_data_group())
@@ -323,6 +323,12 @@ class DICOM_MPR_Viewer(QWidget):
         self.clear_roi_btn = QPushButton("Clear ROI")
         self.clear_roi_btn.clicked.connect(self.clear_manual_roi)
         display_group.addWidget(self.clear_roi_btn)
+
+        # Dark mode toggle
+        self.dark_mode_btn = QPushButton("Dark Mode: OFF")
+        self.dark_mode_btn.setCheckable(True)
+        self.dark_mode_btn.clicked.connect(self.toggle_dark_mode)
+        display_group.addWidget(self.dark_mode_btn)
 
         # Fourth view selector
         fourth_view_label = QLabel("4th View:")
@@ -1088,6 +1094,195 @@ class DICOM_MPR_Viewer(QWidget):
                 self.seg_view.slider.setValue(seg_slice_idx)
                 self.seg_view.update_slice(seg_slice_idx, self.overlay_on)
                 self.seg_view.slider.blockSignals(False)
+
+    def toggle_dark_mode(self):
+        """Toggle dark mode on/off."""
+        is_dark = self.dark_mode_btn.isChecked()
+        self.dark_mode_btn.setText(f"Dark Mode: {'ON' if is_dark else 'OFF'}")
+        
+        # Update all CollapsibleBox widgets
+        for widget in self.findChildren(CollapsibleBox):
+            if hasattr(widget, 'set_dark_mode'):
+                widget.set_dark_mode(is_dark)
+        
+        # Update all SliceView widgets
+        for widget in self.findChildren(SliceView):
+            if hasattr(widget, 'set_dark_mode'):
+                widget.set_dark_mode(is_dark)
+        
+        if is_dark:
+            # Apply clean dark theme
+            self.setStyleSheet("""
+                QWidget {
+                    background-color: #1e1e1e;
+                    color: #ffffff;
+                    font-family: 'Segoe UI', 'Arial', sans-serif;
+                }
+                QPushButton {
+                    background-color: #2d2d2d;
+                    color: #ffffff;
+                    border: 1px solid #404040;
+                    border-radius: 6px;
+                    padding: 6px 12px;
+                    font-weight: 500;
+                    font-size: 11px;
+                }
+                QPushButton:hover {
+                    background-color: #3a3a3a;
+                    border-color: #4a4a4a;
+                }
+                QPushButton:pressed {
+                    background-color: #1a1a1a;
+                }
+                QPushButton:checked {
+                    background-color: #0d7377;
+                    border-color: #14a085;
+                }
+                QComboBox {
+                    background-color: #2d2d2d;
+                    color: #ffffff;
+                    border: 1px solid #404040;
+                    border-radius: 6px;
+                    padding: 4px 8px;
+                    font-size: 11px;
+                }
+                QComboBox:hover {
+                    border-color: #4a4a4a;
+                }
+                QComboBox:focus {
+                    border-color: #0d7377;
+                }
+                QComboBox::drop-down {
+                    background-color: #2d2d2d;
+                    border: none;
+                }
+                QComboBox::down-arrow {
+                    image: none;
+                    border-left: 4px solid transparent;
+                    border-right: 4px solid transparent;
+                    border-top: 4px solid #ffffff;
+                }
+                QComboBox QAbstractItemView {
+                    background-color: #2d2d2d;
+                    color: #ffffff;
+                    border: 1px solid #404040;
+                    border-radius: 6px;
+                    selection-background-color: #0d7377;
+                }
+                QComboBox QAbstractItemView::item {
+                    padding: 6px 10px;
+                    border-bottom: 1px solid #404040;
+                }
+                QComboBox QAbstractItemView::item:hover {
+                    background-color: #3a3a3a;
+                }
+                QSlider::groove:horizontal {
+                    background: #2d2d2d;
+                    height: 6px;
+                    border-radius: 3px;
+                    border: 1px solid #404040;
+                }
+                QSlider::handle:horizontal {
+                    background: #0d7377;
+                    border: 2px solid #ffffff;
+                    width: 16px;
+                    margin: -5px 0;
+                    border-radius: 8px;
+                }
+                QLabel {
+                    color: #ffffff;
+                    font-size: 11px;
+                }
+                QCheckBox {
+                    color: #ffffff;
+                    font-size: 11px;
+                }
+                QCheckBox::indicator {
+                    background-color: #2d2d2d;
+                    border: 1px solid #404040;
+                    border-radius: 3px;
+                    width: 16px;
+                    height: 16px;
+                }
+                QCheckBox::indicator:checked {
+                    background-color: #0d7377;
+                    border-color: #14a085;
+                }
+                QSpinBox {
+                    background-color: #2d2d2d;
+                    color: #ffffff;
+                    border: 1px solid #404040;
+                    border-radius: 6px;
+                    padding: 4px 8px;
+                }
+            """)
+        else:
+            # Apply light theme (reset to default)
+            self.setStyleSheet("""
+                QWidget {
+                    font-family: 'Segoe UI', 'Arial', sans-serif;
+                }
+                QLabel {
+                    font-size: 11px;
+                    color: #2c3e50;
+                }
+                QPushButton {
+                    font-size: 11px;
+                    font-weight: 600;
+                    padding: 8px 16px;
+                    border-radius: 6px;
+                    border: 1px solid #bdc3c7;
+                    background-color: #ecf0f1;
+                    color: #2c3e50;
+                }
+                QPushButton:hover {
+                    background-color: #d5dbdb;
+                    border-color: #95a5a6;
+                }
+                QPushButton:pressed {
+                    background-color: #bdc3c7;
+                }
+                QComboBox {
+                    font-size: 11px;
+                    padding: 6px 12px;
+                    border: 2px solid #bdc3c7;
+                    border-radius: 6px;
+                    background-color: white;
+                    min-height: 20px;
+                }
+                QComboBox:hover {
+                    border-color: #3498db;
+                }
+                QSlider::groove:horizontal {
+                    border: 1px solid #bdc3c7;
+                    height: 6px;
+                    background: #ecf0f1;
+                    border-radius: 3px;
+                }
+                QSlider::handle:horizontal {
+                    background: #3498db;
+                    border: 2px solid #ffffff;
+                    width: 16px;
+                    margin: -5px 0;
+                    border-radius: 8px;
+                }
+                QCheckBox {
+                    font-size: 11px;
+                    color: #2c3e50;
+                    font-weight: 500;
+                }
+                QCheckBox::indicator {
+                    width: 16px;
+                    height: 16px;
+                    border: 2px solid #bdc3c7;
+                    border-radius: 3px;
+                    background: white;
+                }
+                QCheckBox::indicator:checked {
+                    background: #3498db;
+                    border-color: #2980b9;
+                }
+            """)
 
     # Slider event handlers
     def main_view_slider_changed(self, plane, value):
