@@ -5,3 +5,5 @@ SimpleITK
 totalsegmentator
 torch
 torchvision
+pyvista
+scikit-image

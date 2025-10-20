@@ -15,6 +15,14 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve, pyqtSignal
 from PyQt5.QtGui import QFont
 
+# 3D visualization imports
+try:
+    import pyvista as pv
+    from skimage import measure
+    PYTISTA_AVAILABLE = True
+except ImportError:
+    PYTISTA_AVAILABLE = False
+
 from ui_components import CollapsibleBox, SliceView
 from data_loader import DataLoader
 from segmentation import SegmentationManager
@@ -65,6 +73,7 @@ class DICOM_MPR_Viewer(QWidget):
         # View state
         self.slice_indices = {"Axial": 0, "Coronal": 0, "Sagittal": 0, "Oblique": 0}
         self.roi_zoom_on = False
+        self.click_mode = "crosshair"  # "crosshair" or "roi"
         self.views = []
         self.views_dict = {}
         self.oblique_view = None
@@ -205,12 +214,14 @@ class DICOM_MPR_Viewer(QWidget):
         self.roi_btn.setStyleSheet("QPushButton:checked { background-color: #2196F3; color: white; }")
         display_group.addWidget(self.roi_btn)
 
-        # Manual ROI controls
-        self.manual_roi_checkbox = QCheckBox("Manual ROI Rectangle")
-        self.manual_roi_checkbox.stateChanged.connect(self.toggle_manual_roi)
-        display_group.addWidget(self.manual_roi_checkbox)
+        # Click mode toggle
+        self.click_mode_btn = QPushButton("Click Mode: Crosshair")
+        self.click_mode_btn.clicked.connect(self.toggle_click_mode)
+        self.click_mode_btn.setCheckable(True)
+        self.click_mode_btn.setStyleSheet("QPushButton:checked { background-color: #4CAF50; color: white; }")
+        display_group.addWidget(self.click_mode_btn)
 
-        self.clear_roi_btn = QPushButton("Clear Manual ROI")
+        self.clear_roi_btn = QPushButton("Clear ROI")
         self.clear_roi_btn.clicked.connect(self.clear_manual_roi)
         display_group.addWidget(self.clear_roi_btn)
 
@@ -224,7 +235,7 @@ class DICOM_MPR_Viewer(QWidget):
         # Fourth view selector
         display_group.addWidget(QLabel("4th View:"))
         self.fourth_view_dropdown = QComboBox()
-        self.fourth_view_dropdown.addItems(["Segmentation", "Oblique"])
+        self.fourth_view_dropdown.addItems(["Segmentation", "Oblique", "3D Surface"])
         self.fourth_view_dropdown.currentIndexChanged.connect(self.switch_fourth_view)
         display_group.addWidget(self.fourth_view_dropdown)
 
@@ -556,21 +567,29 @@ class DICOM_MPR_Viewer(QWidget):
         # Reorient volume based on detected main plane
         if hasattr(self.data_loader, 'detected_plane') and self.data_loader.detected_plane != "Axial":
             if self.data_loader.detected_plane == "Coronal":
-                # Data is in coronal orientation, transpose to axial
-                self.volume = np.transpose(self.volume, (1, 0, 2))
-                print(f"[Info] Reorienting: Detected as Coronal → Converting to Axial display")
-                print(f"  Original shape: {self.original_volume.shape} → New shape: {self.volume.shape}")
+                print(f"[Info] Detected as Coronal orientation - adjusting view functions")
+                print(f"  Shape: {self.original_volume.shape}")
+                # Don't transpose data, just adjust view functions
+                get_ax = lambda k: self.volume[:, int(np.clip(k, 0, shape[1] - 1)), :]  # Coronal slices
+                get_co = lambda j: self.volume[int(np.clip(j, 0, shape[0] - 1)), :, :]  # Axial slices  
+                get_sa = lambda i: self.volume[:, :, int(np.clip(i, 0, shape[2] - 1))]   # Sagittal slices
             elif self.data_loader.detected_plane == "Sagittal":
-                # Data is in sagittal orientation, transpose to axial
-                self.volume = np.transpose(self.volume, (2, 1, 0))
-                print(f"[Info] Reorienting: Detected as Sagittal → Converting to Axial display")
-                print(f"  Original shape: {self.original_volume.shape} → New shape: {self.volume.shape}")
-
-        shape = self.volume.shape
-
-        get_ax = lambda k: self.volume[int(np.clip(k, 0, shape[0] - 1)), :, :]
-        get_co = lambda j: self.volume[:, int(np.clip(j, 0, shape[1] - 1)), :]
-        get_sa = lambda i: self.volume[:, :, int(np.clip(i, 0, shape[2] - 1))]
+                print(f"[Info] Detected as Sagittal orientation - adjusting view functions")
+                print(f"  Shape: {self.original_volume.shape}")
+                # Don't transpose data, just adjust view functions
+                get_ax = lambda k: self.volume[:, :, int(np.clip(k, 0, shape[2] - 1))]   # Sagittal slices
+                get_co = lambda j: self.volume[:, int(np.clip(j, 0, shape[1] - 1)), :]  # Coronal slices
+                get_sa = lambda i: self.volume[int(np.clip(i, 0, shape[0] - 1)), :, :]  # Axial slices
+            else:
+                # Default axial orientation
+                get_ax = lambda k: self.volume[int(np.clip(k, 0, shape[0] - 1)), :, :]
+                get_co = lambda j: self.volume[:, int(np.clip(j, 0, shape[1] - 1)), :]
+                get_sa = lambda i: self.volume[:, :, int(np.clip(i, 0, shape[2] - 1))]
+        else:
+            # Default axial orientation
+            get_ax = lambda k: self.volume[int(np.clip(k, 0, shape[0] - 1)), :, :]
+            get_co = lambda j: self.volume[:, int(np.clip(j, 0, shape[1] - 1)), :]
+            get_sa = lambda i: self.volume[:, :, int(np.clip(i, 0, shape[2] - 1))]
 
         def get_oblique(k):
             return get_oblique_slice(
@@ -629,15 +648,60 @@ class DICOM_MPR_Viewer(QWidget):
         if self.fourth_view_mode == "Oblique":
             self.views.append(oblique_view)
             fourth_view = oblique_view
+        elif self.fourth_view_mode == "3D Surface":
+            # Create a placeholder view for 3D surface
+            fourth_view = self.create_3d_surface_view()
+            self.views.append(fourth_view)
         else:
             self.views.append(seg_view)
             fourth_view = seg_view
 
+        # Set slider maximums and slice indices based on detected orientation
+        if hasattr(self.data_loader, 'detected_plane') and self.data_loader.detected_plane != "Axial":
+            if self.data_loader.detected_plane == "Coronal":
+                # For Coronal data: Axial=height, Coronal=depth, Sagittal=width
+                axial_max = shape[1] - 1
+                coronal_max = shape[0] - 1
+                sagittal_max = shape[2] - 1
+                axial_default = shape[1] // 2
+                coronal_default = shape[0] // 2
+                sagittal_default = shape[2] // 2
+            elif self.data_loader.detected_plane == "Sagittal":
+                # For Sagittal data: Axial=width, Coronal=height, Sagittal=depth
+                axial_max = shape[2] - 1
+                coronal_max = shape[1] - 1
+                sagittal_max = shape[0] - 1
+                axial_default = shape[2] // 2
+                coronal_default = shape[1] // 2
+                sagittal_default = shape[0] // 2
+            else:
+                # Default axial orientation
+                axial_max = shape[0] - 1
+                coronal_max = shape[1] - 1
+                sagittal_max = shape[2] - 1
+                axial_default = shape[0] // 2
+                coronal_default = shape[1] // 2
+                sagittal_default = shape[2] // 2
+        else:
+            # Default axial orientation
+            axial_max = shape[0] - 1
+            coronal_max = shape[1] - 1
+            sagittal_max = shape[2] - 1
+            axial_default = shape[0] // 2
+            coronal_default = shape[1] // 2
+            sagittal_default = shape[2] // 2
+
+        # Set slider maximums first
+        axial.slider.setMaximum(axial_max)
+        coronal.slider.setMaximum(coronal_max)
+        sagittal.slider.setMaximum(sagittal_max)
+
+        # Ensure slice indices are within bounds after reorientation
         self.slice_indices = {
-            "Axial": shape[0] // 2,
-            "Coronal": shape[1] // 2,
-            "Sagittal": shape[2] // 2,
-            "Oblique": self.slice_indices["Oblique"],
+            "Axial": max(0, min(self.slice_indices.get("Axial", axial_default), axial_max)),
+            "Coronal": max(0, min(self.slice_indices.get("Coronal", coronal_default), coronal_max)),
+            "Sagittal": max(0, min(self.slice_indices.get("Sagittal", sagittal_default), sagittal_max)),
+            "Oblique": max(0, min(self.slice_indices.get("Oblique", axial_default), axial_max)),
         }
 
         axial.slider.setValue(self.slice_indices["Axial"])
@@ -662,9 +726,6 @@ class DICOM_MPR_Viewer(QWidget):
         for view in self.views:
             if hasattr(view, 'set_roi_zoom'):
                 view.set_roi_zoom(self.roi_zoom_on)
-        axial.slider.setMaximum(shape[0] - 1)
-        coronal.slider.setMaximum(shape[1] - 1)
-        sagittal.slider.setMaximum(shape[2] - 1)
 
         # Standard 2x2 grid layout
         self.grid.addWidget(axial, 0, 0)
@@ -720,6 +781,22 @@ class DICOM_MPR_Viewer(QWidget):
         self.overlay_btn.setChecked(self.overlay_on)
         self.refresh_all_views()
 
+    def toggle_click_mode(self):
+        """Toggle between crosshair and ROI click modes."""
+        if self.click_mode == "crosshair":
+            self.click_mode = "roi"
+            self.click_mode_btn.setText("Click Mode: ROI")
+            self.click_mode_btn.setChecked(True)
+        else:
+            self.click_mode = "crosshair"
+            self.click_mode_btn.setText("Click Mode: Crosshair")
+            self.click_mode_btn.setChecked(False)
+        
+        # Update all views with the new click mode
+        for view in self.views:
+            if hasattr(view, 'set_click_mode'):
+                view.set_click_mode(self.click_mode)
+
     def toggle_roi_zoom(self):
         """Toggle ROI zoom functionality."""
         self.roi_zoom_on = not self.roi_zoom_on
@@ -731,7 +808,7 @@ class DICOM_MPR_Viewer(QWidget):
         self.refresh_all_views()
 
     def switch_fourth_view(self):
-        """Switch between Segmentation and Oblique view in the 4th panel."""
+        """Switch between Segmentation, Oblique, and 3D Surface view in the 4th panel."""
         self.fourth_view_mode = self.fourth_view_dropdown.currentText()
         if self.volume is not None:
             self.setup_views()
@@ -764,6 +841,42 @@ class DICOM_MPR_Viewer(QWidget):
         self.seg_view.update_slice(idx, self.overlay_on)
         self.seg_view.slider.blockSignals(False)
 
+    def _validate_slice_indices(self):
+        """Validate and clamp slice indices to prevent IndexError."""
+        if self.volume is None:
+            return
+        
+        shape = self.volume.shape
+        
+        # Determine max indices based on detected orientation
+        if hasattr(self.data_loader, 'detected_plane') and self.data_loader.detected_plane != "Axial":
+            if self.data_loader.detected_plane == "Coronal":
+                # For Coronal data: Axial=height, Coronal=depth, Sagittal=width
+                axial_max = shape[1] - 1
+                coronal_max = shape[0] - 1
+                sagittal_max = shape[2] - 1
+            elif self.data_loader.detected_plane == "Sagittal":
+                # For Sagittal data: Axial=width, Coronal=height, Sagittal=depth
+                axial_max = shape[2] - 1
+                coronal_max = shape[1] - 1
+                sagittal_max = shape[0] - 1
+            else:
+                # Default axial orientation
+                axial_max = shape[0] - 1
+                coronal_max = shape[1] - 1
+                sagittal_max = shape[2] - 1
+        else:
+            # Default axial orientation
+            axial_max = shape[0] - 1
+            coronal_max = shape[1] - 1
+            sagittal_max = shape[2] - 1
+        
+        # Clamp all slice indices to valid ranges
+        self.slice_indices["Axial"] = max(0, min(self.slice_indices.get("Axial", 0), axial_max))
+        self.slice_indices["Coronal"] = max(0, min(self.slice_indices.get("Coronal", 0), coronal_max))
+        self.slice_indices["Sagittal"] = max(0, min(self.slice_indices.get("Sagittal", 0), sagittal_max))
+        self.slice_indices["Oblique"] = max(0, min(self.slice_indices.get("Oblique", 0), axial_max))
+
     def update_all_crosshairs(self):
         """Update crosshair positions across all views."""
         if self.volume is None:
@@ -778,8 +891,12 @@ class DICOM_MPR_Viewer(QWidget):
 
     def refresh_all_views(self):
         """Refresh all views with current settings."""
-        if not self.views:
+        if not self.views or self.volume is None:
             return
+        
+        # Validate and clamp slice indices to prevent IndexError
+        self._validate_slice_indices()
+        
         self.update_all_crosshairs()
         self.views_dict["Axial"].update_slice(self.slice_indices["Axial"], self.overlay_on)
         self.views_dict["Coronal"].update_slice(self.slice_indices["Coronal"], self.overlay_on)
@@ -837,6 +954,9 @@ class DICOM_MPR_Viewer(QWidget):
     # Slider event handlers
     def main_view_slider_changed(self, plane, value):
         """Handle slider changes for main views (Axial, Coronal, Sagittal)."""
+        # Validate slice indices before updating
+        self._validate_slice_indices()
+        
         self.slice_indices[plane] = value
         self.update_all_crosshairs()
         self.views_dict[plane].update_slice(value, self.overlay_on)
@@ -851,6 +971,9 @@ class DICOM_MPR_Viewer(QWidget):
 
     def seg_view_slider_changed(self, value):
         """Handle slider changes for segmentation view."""
+        # Validate slice indices before updating
+        self._validate_slice_indices()
+        
         main_plane = self.segmentation_plane
         self.slice_indices[main_plane] = value
         self.update_all_crosshairs()
@@ -866,6 +989,9 @@ class DICOM_MPR_Viewer(QWidget):
 
     def oblique_slider_changed(self, value):
         """Handle slider changes for oblique view."""
+        # Validate slice indices before updating
+        self._validate_slice_indices()
+        
         self.slice_indices["Oblique"] = value
         if hasattr(self, 'oblique_view') and self.oblique_view:
             self.oblique_view.update_slice(value, self.overlay_on)
@@ -902,6 +1028,10 @@ class DICOM_MPR_Viewer(QWidget):
                 self.slice_indices["Axial"] = orig_row
                 self.views_dict["Sagittal"].slider.setValue(self.slice_indices["Sagittal"])
                 self.views_dict["Axial"].slider.setValue(self.slice_indices["Axial"])
+            
+            # Validate slice indices before refreshing views
+            self._validate_slice_indices()
+            
             # Refresh all views and crosshairs
             self.refresh_all_views()
         except Exception:
@@ -965,12 +1095,6 @@ class DICOM_MPR_Viewer(QWidget):
             self.oblique_view.update_slice(idx, self.overlay_on)
 
     # Manual ROI support
-    def toggle_manual_roi(self, state):
-        enabled = state == Qt.Checked
-        for v in [self.views_dict.get("Axial"), self.views_dict.get("Coronal"), self.views_dict.get("Sagittal"), self.seg_view, self.oblique_view]:
-            if v is not None and hasattr(v, 'set_manual_roi_enabled'):
-                v.set_manual_roi_enabled(enabled)
-
     def clear_manual_roi(self):
         for v in [self.views_dict.get("Axial"), self.views_dict.get("Coronal"), self.views_dict.get("Sagittal"), self.seg_view, self.oblique_view]:
             if v is not None and hasattr(v, 'clear_manual_roi'):
@@ -1178,6 +1302,9 @@ class DICOM_MPR_Viewer(QWidget):
             self.playback_timer.stop()
             return
 
+        # Validate slice indices before advancing
+        self._validate_slice_indices()
+
         # Determine which view to animate and get its slider
         target_view = None
         max_value = 0
@@ -1306,6 +1433,70 @@ class DICOM_MPR_Viewer(QWidget):
             )
         except Exception as e:
             QMessageBox.critical(self, "Export Error", str(e))
+
+    def create_3d_surface_view(self):
+        """Create a placeholder view for 3D surface visualization."""
+        # Create a simple label widget as placeholder with plane attribute
+        view_widget = QWidget()
+        view_widget.plane = "3D Surface"  # Add plane attribute for compatibility
+        layout = QVBoxLayout()
+        
+        # Add a button to show 3D surface
+        show_3d_btn = QPushButton("Show 3D Surface")
+        show_3d_btn.clicked.connect(self.show_3d_surface)
+        layout.addWidget(show_3d_btn)
+        
+        # Add info label
+        info_label = QLabel("Click 'Show 3D Surface' to open 3D visualization")
+        info_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(info_label)
+        
+        view_widget.setLayout(layout)
+        return view_widget
+
+    def show_3d_surface(self):
+        """Show 3D surface visualization using PyVista."""
+        if not PYTISTA_AVAILABLE:
+            QMessageBox.warning(self, "3D Visualization", 
+                              "PyVista and scikit-image are required for 3D visualization.\n"
+                              "Install with: pip install pyvista scikit-image")
+            return
+        
+        if self.volume is None:
+            QMessageBox.warning(self, "3D Visualization", "No volume data loaded.")
+            return
+        
+        try:
+            # Ensure volume is 3D and has reasonable size
+            if len(self.volume.shape) != 3:
+                QMessageBox.warning(self, "3D Visualization", "Volume must be 3D for surface visualization.")
+                return
+            
+            # Use a more conservative threshold and ensure data is properly scaled
+            volume_normalized = (self.volume - self.volume.min()) / (self.volume.max() - self.volume.min())
+            threshold = np.percentile(volume_normalized, 70)  # Higher threshold for better surface
+            mask_3d = volume_normalized > threshold
+            
+            # Check if mask has any True values
+            if not np.any(mask_3d):
+                QMessageBox.warning(self, "3D Visualization", "No surface found with current threshold. Try adjusting the threshold.")
+                return
+            
+            # Marching cubes with proper spacing
+            verts, faces, _, _ = measure.marching_cubes(mask_3d, level=0.5, spacing=(1.0, 1.0, 1.0))
+            
+            if len(verts) == 0 or len(faces) == 0:
+                QMessageBox.warning(self, "3D Visualization", "No surface geometry generated.")
+                return
+            
+            faces_flat = np.hstack([np.full((faces.shape[0], 1), 3), faces]).astype(np.int32)
+            surface = pv.PolyData(verts, faces_flat)
+            
+            # Show in interactive window
+            surface.plot(smooth_shading=True)
+            
+        except Exception as e:
+            QMessageBox.critical(self, "3D Visualization Error", f"Error creating 3D surface: {str(e)}")
 
 
 def main():

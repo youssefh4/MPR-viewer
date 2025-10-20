@@ -99,6 +99,9 @@ class SliceView(QWidget):
         self.crosshair_enabled = True
         self.crosshair_pos = None
         self.volume_shape = None
+        self.click_mode = "crosshair"  # "crosshair" or "roi"
+        self.roi_start_point = None  # Store the starting point for rectangular ROI
+        self.roi_drawing = False  # Track if we're currently drawing ROI
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(5, 5, 5, 5)
@@ -123,18 +126,126 @@ class SliceView(QWidget):
         self.slider.setMaximumHeight(30)
         layout.addWidget(self.slider, 0)
 
-        # Mouse click hookup
+        # Mouse event hookups
         self.canvas.mpl_connect('button_press_event', self._on_canvas_click)
+        self.canvas.mpl_connect('motion_notify_event', self._on_mouse_motion)
+        self.canvas.mpl_connect('button_release_event', self._on_mouse_release)
 
     def _on_canvas_click(self, event):
         if event is None or event.inaxes is None or getattr(event, 'button', None) != 1:
             return
-        try:
-            x = int(event.xdata)
-            y = int(event.ydata)
-        except Exception:
+        
+        # Handle click based on current mode
+        if self.click_mode == "roi":
+            # Start rectangular ROI drawing
+            try:
+                x = int(event.xdata)
+                y = int(event.ydata)
+                self.roi_start_point = (x, y)
+                self.roi_drawing = True
+                print(f"ROI drawing started at: {self.roi_start_point}")
+            except Exception as e:
+                print(f"ROI start error: {e}")
+        else:
+            # Crosshair mode - emit click event
+            try:
+                x = int(event.xdata)
+                y = int(event.ydata)
+            except Exception:
+                return
+            self.canvas_clicked.emit(x, y, self.plane)
+
+    def _on_mouse_motion(self, event):
+        """Handle mouse motion during ROI drawing."""
+        if not self.roi_drawing or event is None or event.inaxes is None:
             return
-        self.canvas_clicked.emit(x, y, self.plane)
+        
+        if self.click_mode == "roi" and self.roi_start_point is not None:
+            try:
+                x = int(event.xdata)
+                y = int(event.ydata)
+                # Draw preview rectangle
+                self._draw_roi_preview(self.roi_start_point, (x, y))
+            except Exception as e:
+                print(f"ROI motion error: {e}")
+
+    def _on_mouse_release(self, event):
+        """Handle mouse release to complete ROI drawing."""
+        if not self.roi_drawing or event is None or event.inaxes is None:
+            return
+        
+        if self.click_mode == "roi" and self.roi_start_point is not None:
+            try:
+                x = int(event.xdata)
+                y = int(event.ydata)
+                
+                # Create final ROI rectangle
+                xmin = min(self.roi_start_point[0], x)
+                xmax = max(self.roi_start_point[0], x)
+                ymin = min(self.roi_start_point[1], y)
+                ymax = max(self.roi_start_point[1], y)
+                
+                # Ensure minimum size
+                if xmax - xmin < 5 or ymax - ymin < 5:
+                    print("ROI too small, ignoring")
+                    self.roi_drawing = False
+                    self.roi_start_point = None
+                    return
+                
+                self.manual_roi_rect = (xmin, ymin, xmax, ymax)
+                print(f"ROI completed: {self.manual_roi_rect}")
+                
+                # Clear preview and draw final ROI
+                self._clear_roi_preview()
+                self.canvas.draw_idle()
+                
+            except Exception as e:
+                print(f"ROI completion error: {e}")
+            finally:
+                self.roi_drawing = False
+                self.roi_start_point = None
+
+    def _draw_roi_preview(self, start_point, current_point):
+        """Draw a preview rectangle during ROI drawing."""
+        try:
+            # Clear previous preview
+            self._clear_roi_preview()
+            
+            # Draw new preview rectangle
+            xmin = min(start_point[0], current_point[0])
+            xmax = max(start_point[0], current_point[0])
+            ymin = min(start_point[1], current_point[1])
+            ymax = max(start_point[1], current_point[1])
+            
+            from matplotlib.patches import Rectangle
+            preview_rect = Rectangle((xmin, ymin), xmax - xmin, ymax - ymin,
+                                  linewidth=2, edgecolor='red', facecolor='none', linestyle='--')
+            self.ax.add_patch(preview_rect)
+            self.canvas.draw_idle()
+        except Exception as e:
+            print(f"Preview drawing error: {e}")
+
+    def _clear_roi_preview(self):
+        """Clear ROI preview rectangles."""
+        try:
+            # Remove all preview rectangles (patches with dashed lines)
+            patches_to_remove = []
+            for patch in self.ax.patches:
+                if hasattr(patch, 'get_linestyle') and patch.get_linestyle() == '--':
+                    patches_to_remove.append(patch)
+            
+            for patch in patches_to_remove:
+                patch.remove()
+        except Exception as e:
+            print(f"Preview clear error: {e}")
+
+    def set_click_mode(self, mode: str):
+        """Set the click mode: 'crosshair' or 'roi'."""
+        self.click_mode = mode
+        if mode == "roi":
+            self.title_label.setText(f"{self.top_label}{self.plane} (Click & Drag for ROI)")
+        else:
+            self.title_label.setText(f"{self.top_label}{self.plane}")
 
     def set_manual_roi_enabled(self, enabled: bool):
         self.manual_roi_enabled = enabled
@@ -154,15 +265,21 @@ class SliceView(QWidget):
                         spancoords='data'
                     )
                 self._rect_selector.set_active(True)
+                # Update title to show manual ROI is active
+                self.title_label.setText(f"{self.top_label}{self.plane} (Manual ROI: Click & Drag)")
             else:
                 if self._rect_selector is not None:
                     self._rect_selector.set_active(False)
+                # Restore normal title
+                self.title_label.setText(f"{self.top_label}{self.plane}")
         except Exception as e:
             print(f"Manual ROI error: {e}")
             pass
 
     def clear_manual_roi(self):
         self.manual_roi_rect = None
+        self.roi_drawing = False
+        self.roi_start_point = None
         try:
             if self._rect_selector is not None:
                 self._rect_selector.set_active(False)
@@ -170,7 +287,21 @@ class SliceView(QWidget):
                 for artist in self.ax.collections + self.ax.patches:
                     if hasattr(artist, '_manual_roi'):
                         artist.remove()
-        except Exception:
+            
+            # Clear preview rectangles
+            self._clear_roi_preview()
+            
+            # Clear any existing ROI patches
+            patches_to_remove = []
+            for patch in self.ax.patches:
+                if hasattr(patch, 'get_edgecolor') and patch.get_edgecolor() == 'red':
+                    patches_to_remove.append(patch)
+            
+            for patch in patches_to_remove:
+                patch.remove()
+                
+        except Exception as e:
+            print(f"Clear ROI error: {e}")
             pass
         self.canvas.draw_idle()
 
@@ -241,11 +372,45 @@ class SliceView(QWidget):
             self.ax.axvline(x=h_pos, color='red', linewidth=1.5, linestyle='-', alpha=0.8)
 
     def update_slice(self, idx, show_mask=False):
-        img = self.get_slice(idx)
-        self.slice_label.setText(f"Slice: {idx}")
-        self.ax.clear()
-        self.ax.imshow(np.rot90(img), cmap="gray")
-        self.ax.axis("off")
+        try:
+            img = self.get_slice(idx)
+            self.slice_label.setText(f"Slice: {idx}")
+            
+            # Store ROI rectangle before clearing
+            roi_rect = None
+            if self.manual_roi_rect is not None:
+                xmin, ymin, xmax, ymax = self.manual_roi_rect
+                roi_rect = (xmin, ymin, xmax, ymax)
+            
+            self.ax.clear()
+            self.ax.imshow(np.rot90(img), cmap="gray")
+            self.ax.axis("off")
+        except (IndexError, ValueError) as e:
+            print(f"Error updating slice {idx} in {self.plane}: {e}")
+            # Try to get a valid slice by clamping the index
+            try:
+                # This is a fallback - the main fix should be in mpr_viewer.py
+                if hasattr(self, 'slider') and self.slider:
+                    max_idx = self.slider.maximum()
+                    clamped_idx = max(0, min(idx, max_idx))
+                    img = self.get_slice(clamped_idx)
+                    self.slice_label.setText(f"Slice: {clamped_idx} (clamped from {idx})")
+                    self.ax.clear()
+                    self.ax.imshow(np.rot90(img), cmap="gray")
+                    self.ax.axis("off")
+                else:
+                    return
+            except Exception:
+                print(f"Failed to recover from slice error in {self.plane}")
+                return
+
+        # Restore ROI rectangle if it exists
+        if roi_rect is not None:
+            from matplotlib.patches import Rectangle
+            xmin, ymin, xmax, ymax = roi_rect
+            roi_patch = Rectangle((xmin, ymin), xmax - xmin, ymax - ymin,
+                                linewidth=2, edgecolor='red', facecolor='none')
+            self.ax.add_patch(roi_patch)
 
         mask = self.get_mask(idx) if self.get_mask else None
         bbox = None
@@ -267,7 +432,7 @@ class SliceView(QWidget):
                 print(f"[Mask display error {self.plane}] {e}")
 
         # Manual ROI zoom takes precedence when enabled
-        if self.manual_roi_enabled and self.manual_roi_rect is not None and self.roi_zoom_enabled:
+        if self.click_mode == "roi" and self.manual_roi_rect is not None and self.roi_zoom_enabled:
             xmin, ymin, xmax, ymax = self.manual_roi_rect
             img_h, img_w = np.rot90(img).shape
             xmin = int(np.clip(xmin, 0, img_w - 1))
@@ -275,8 +440,17 @@ class SliceView(QWidget):
             ymin = int(np.clip(ymin, 0, img_h - 1))
             ymax = int(np.clip(ymax, 0, img_h - 1))
             if xmax > xmin and ymax > ymin:
-                self.ax.set_xlim(xmin, xmax)
-                self.ax.set_ylim(ymax, ymin)
+                # Add margin like automatic ROI
+                box_w = xmax - xmin
+                box_h = ymax - ymin
+                margin_x = max(int(0.08 * box_w), 4)
+                margin_y = max(int(0.08 * box_h), 4)
+                draw_xmin = max(0, xmin - margin_x)
+                draw_xmax = min(img_w, xmax + margin_x)
+                draw_ymin = max(0, ymin - margin_y)
+                draw_ymax = min(img_h, ymax + margin_y)
+                self.ax.set_xlim(draw_xmin, draw_xmax)
+                self.ax.set_ylim(draw_ymax, draw_ymin)
         elif bbox and self.roi_zoom_enabled:
             (xmin, ymin), (xmax, ymax) = bbox
             box_w = xmax - xmin

@@ -88,7 +88,7 @@ def detect_orientation_resnet18(volume):
         model = OrientationResNet18(num_classes=3)
         
         # Load your trained model weights
-        model_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "models", "resnet18_orientation_finetuned.pth")
+        model_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "models", "resnet18_orientation_finetuned_more.pth")
         if os.path.exists(model_path):
             try:
                 # Try loading as state_dict first
