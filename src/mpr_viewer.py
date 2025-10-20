@@ -1435,8 +1435,7 @@ class DICOM_MPR_Viewer(QWidget):
             QMessageBox.critical(self, "Export Error", str(e))
 
     def create_3d_surface_view(self):
-        """Create a placeholder view for 3D surface visualization."""
-        # Create a simple label widget as placeholder with plane attribute
+        """Create an enhanced view for 3D surface visualization with controls."""
         view_widget = QWidget()
         view_widget.plane = "3D Surface"  # Add plane attribute for compatibility
         layout = QVBoxLayout()
@@ -1444,18 +1443,55 @@ class DICOM_MPR_Viewer(QWidget):
         # Add a button to show 3D surface
         show_3d_btn = QPushButton("Show 3D Surface")
         show_3d_btn.clicked.connect(self.show_3d_surface)
+        show_3d_btn.setStyleSheet("QPushButton { background-color: #2196F3; color: white; font-weight: bold; }")
         layout.addWidget(show_3d_btn)
         
+        # Add threshold control
+        threshold_layout = QVBoxLayout()
+        threshold_layout.setSpacing(2)
+        
+        self.threshold_label = QLabel("Surface Threshold: 70%")
+        threshold_layout.addWidget(self.threshold_label)
+        
+        self.threshold_slider = QSlider(Qt.Horizontal)
+        self.threshold_slider.setMinimum(10)
+        self.threshold_slider.setMaximum(95)
+        self.threshold_slider.setValue(70)
+        self.threshold_slider.valueChanged.connect(self.update_3d_threshold)
+        threshold_layout.addWidget(self.threshold_slider)
+        
+        layout.addLayout(threshold_layout)
+        
+        # Add surface options
+        options_layout = QVBoxLayout()
+        options_layout.setSpacing(5)
+        
+        self.smooth_surface_cb = QCheckBox("Smooth Surface")
+        self.smooth_surface_cb.setChecked(True)
+        options_layout.addWidget(self.smooth_surface_cb)
+        
+        self.show_axes_cb = QCheckBox("Show Axes")
+        self.show_axes_cb.setChecked(True)
+        options_layout.addWidget(self.show_axes_cb)
+        
+        layout.addLayout(options_layout)
+        
         # Add info label
-        info_label = QLabel("Click 'Show 3D Surface' to open 3D visualization")
+        info_label = QLabel("3D Surface Controls\n\n• Adjust threshold to change surface detail\n• Use mouse to zoom, pan, and rotate\n• Enable/disable surface smoothing")
         info_label.setAlignment(Qt.AlignCenter)
+        info_label.setWordWrap(True)
+        info_label.setStyleSheet("QLabel { font-size: 10px; color: #666; }")
         layout.addWidget(info_label)
         
         view_widget.setLayout(layout)
         return view_widget
 
+    def update_3d_threshold(self, value):
+        """Update the 3D surface threshold value."""
+        self.threshold_label.setText(f"Surface Threshold: {value}%")
+    
     def show_3d_surface(self):
-        """Show 3D surface visualization using PyVista."""
+        """Show 3D surface visualization using PyVista with interactive zoom controls."""
         if not PYTISTA_AVAILABLE:
             QMessageBox.warning(self, "3D Visualization", 
                               "PyVista and scikit-image are required for 3D visualization.\n"
@@ -1472,14 +1508,17 @@ class DICOM_MPR_Viewer(QWidget):
                 QMessageBox.warning(self, "3D Visualization", "Volume must be 3D for surface visualization.")
                 return
             
-            # Use a more conservative threshold and ensure data is properly scaled
+            # Get threshold from slider
+            threshold_percent = self.threshold_slider.value()
+            
+            # Use threshold and ensure data is properly scaled
             volume_normalized = (self.volume - self.volume.min()) / (self.volume.max() - self.volume.min())
-            threshold = np.percentile(volume_normalized, 70)  # Higher threshold for better surface
+            threshold = np.percentile(volume_normalized, threshold_percent)
             mask_3d = volume_normalized > threshold
             
             # Check if mask has any True values
             if not np.any(mask_3d):
-                QMessageBox.warning(self, "3D Visualization", "No surface found with current threshold. Try adjusting the threshold.")
+                QMessageBox.warning(self, "3D Visualization", f"No surface found with {threshold_percent}% threshold. Try adjusting the threshold.")
                 return
             
             # Marching cubes with proper spacing
@@ -1492,11 +1531,31 @@ class DICOM_MPR_Viewer(QWidget):
             faces_flat = np.hstack([np.full((faces.shape[0], 1), 3), faces]).astype(np.int32)
             surface = pv.PolyData(verts, faces_flat)
             
-            # Show in interactive window
-            surface.plot(smooth_shading=True)
+            # Create interactive plotter with zoom controls
+            plotter = pv.Plotter()
+            
+            # Get settings from checkboxes
+            smooth_shading = self.smooth_surface_cb.isChecked()
+            show_axes = self.show_axes_cb.isChecked()
+            
+            plotter.add_mesh(surface, smooth_shading=smooth_shading, color='lightblue', opacity=0.8)
+            
+            # Add helpful text
+            plotter.add_text("3D Surface Visualization\n\nMouse Controls:\n• Left Click + Drag: Rotate\n• Right Click + Drag: Pan\n• Scroll Wheel: Zoom In/Out\n• Middle Click + Drag: Zoom\n\nKeyboard:\n• 'r': Reset view\n• 'q': Quit", 
+                           position='upper_left', font_size=10)
+            
+            # Set up the plotter with better initial view
+            plotter.set_background('white')
+            if show_axes:
+                plotter.show_axes()
+            plotter.enable_depth_peeling()  # Better transparency rendering
+            
+            # Show the interactive window
+            plotter.show()
             
         except Exception as e:
             QMessageBox.critical(self, "3D Visualization Error", f"Error creating 3D surface: {str(e)}")
+    
 
 
 def main():

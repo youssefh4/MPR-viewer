@@ -87,65 +87,88 @@ def detect_orientation_resnet18(volume):
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         model = OrientationResNet18(num_classes=3)
         
-        # Load your trained model weights
-        model_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "models", "resnet18_orientation_finetuned.pth")
-        if os.path.exists(model_path):
-            try:
-                # Try loading as state_dict first
-                state_dict = torch.load(model_path, map_location=device)
-                
-                # Check if the state_dict keys match our model architecture
-                model_keys = set(model.state_dict().keys())
-                state_dict_keys = set(state_dict.keys())
-                
-                if model_keys == state_dict_keys:
-                    # Perfect match - load directly
-                    model.load_state_dict(state_dict)
-                    print(f"[ResNet18] Loaded trained model from: {model_path}")
-                elif all(key.startswith('resnet.') for key in state_dict_keys):
-                    # State dict has 'resnet.' prefix but model doesn't expect it
-                    # This shouldn't happen with current architecture, but handle it
-                    model.load_state_dict(state_dict)
-                    print(f"[ResNet18] Loaded trained model from: {model_path}")
-                else:
-                    # State dict doesn't have 'resnet.' prefix - need to add it
-                    new_state_dict = {}
-                    for key, value in state_dict.items():
-                        if not key.startswith('resnet.'):
-                            new_key = f'resnet.{key}'
-                        else:
-                            new_key = key
-                        new_state_dict[new_key] = value
-                    
-                    model.load_state_dict(new_state_dict)
-                    print(f"[ResNet18] Loaded trained model from: {model_path} (added resnet. prefix)")
-                    
-            except Exception as e:
-                print(f"[ResNet18] State dict loading failed: {e}")
+        # Load only the specified ResNet model
+        model_paths = [
+            r"X:\task 2 trials\Task 2\mpr_viewer\models\resnet18_orientation_finetuned.pth"
+        ]
+        
+        model_loaded = False
+        for model_path in model_paths:
+            if os.path.exists(model_path):
                 try:
-                    # Try loading as full model
-                    model = torch.load(model_path, map_location=device)
-                    print(f"[ResNet18] Loaded full trained model from: {model_path}")
-                except Exception as e2:
-                    print(f"[ResNet18] Full model loading failed: {e2}")
-                    print(f"[ResNet18] Using untrained model")
-        else:
-            print(f"[ResNet18] Model not found at {model_path}, using untrained model")
+                    # Try loading as state_dict first
+                    state_dict = torch.load(model_path, map_location=device)
+                    
+                    # Check if the state_dict keys match our model architecture
+                    model_keys = set(model.state_dict().keys())
+                    state_dict_keys = set(state_dict.keys())
+                    
+                    if model_keys == state_dict_keys:
+                        # Perfect match - load directly
+                        model.load_state_dict(state_dict)
+                        print(f"[ResNet18] Loaded trained model from: {model_path}")
+                        model_loaded = True
+                        break
+                    elif all(key.startswith('resnet.') for key in state_dict_keys):
+                        # State dict has 'resnet.' prefix but model doesn't expect it
+                        model.load_state_dict(state_dict)
+                        print(f"[ResNet18] Loaded trained model from: {model_path}")
+                        model_loaded = True
+                        break
+                    else:
+                        # State dict doesn't have 'resnet.' prefix - need to add it
+                        new_state_dict = {}
+                        for key, value in state_dict.items():
+                            if not key.startswith('resnet.'):
+                                new_key = f'resnet.{key}'
+                            else:
+                                new_key = key
+                            new_state_dict[new_key] = value
+                        
+                        model.load_state_dict(new_state_dict)
+                        print(f"[ResNet18] Loaded trained model from: {model_path} (added resnet. prefix)")
+                        model_loaded = True
+                        break
+                        
+                except Exception as e:
+                    print(f"[ResNet18] State dict loading failed for {model_path}: {e}")
+                    try:
+                        # Try loading as full model
+                        model = torch.load(model_path, map_location=device)
+                        print(f"[ResNet18] Loaded full trained model from: {model_path}")
+                        model_loaded = True
+                        break
+                    except Exception as e2:
+                        print(f"[ResNet18] Full model loading failed for {model_path}: {e2}")
+                        continue
+        
+        if not model_loaded:
+            print(f"[ResNet18] No trained models found, using untrained model")
         
         # Move model to device (only if it's a proper model object)
         if hasattr(model, 'to'):
             model = model.to(device)
         model.eval()
 
-        # Prepare middle slices from each orientation
+        # Improved preprocessing for better confidence
         shape = volume.shape
-        slices = [
-            volume[shape[0] // 2, :, :],  # Axial
-            volume[:, shape[1] // 2, :],  # Coronal
-            volume[:, :, shape[2] // 2]  # Sagittal
-        ]
+        
+        # Use multiple slices per orientation for more robust prediction
+        slice_positions = [0.25, 0.5, 0.75]  # 25%, 50%, 75% positions
+        all_slices = []
+        
+        for pos in slice_positions:
+            axial_idx = int(shape[0] * pos)
+            coronal_idx = int(shape[1] * pos)
+            sagittal_idx = int(shape[2] * pos)
+            
+            all_slices.extend([
+                volume[axial_idx, :, :],    # Axial
+                volume[:, coronal_idx, :],  # Coronal
+                volume[:, :, sagittal_idx]  # Sagittal
+            ])
 
-        # Preprocess slices
+        # Enhanced preprocessing with better normalization
         transform = transforms.Compose([
             transforms.ToPILImage(),
             transforms.Resize((224, 224)),
@@ -155,10 +178,11 @@ def detect_orientation_resnet18(volume):
 
         predictions = []
         with torch.no_grad():
-            for slice_img in slices:
-                # Normalize to 0-255 range
-                slice_norm = ((slice_img - slice_img.min()) / (slice_img.max() - slice_img.min() + 1e-8) * 255).astype(
-                    np.uint8)
+            for i, slice_img in enumerate(all_slices):
+                # Better normalization - use percentile-based normalization
+                p2, p98 = np.percentile(slice_img, [2, 98])
+                slice_clipped = np.clip(slice_img, p2, p98)
+                slice_norm = ((slice_clipped - p2) / (p98 - p2 + 1e-8) * 255).astype(np.uint8)
 
                 # Convert to tensor
                 img_tensor = transform(slice_norm).unsqueeze(0).to(device)
@@ -168,17 +192,40 @@ def detect_orientation_resnet18(volume):
                 probs = softmax(output, dim=1).cpu().numpy()[0]
                 predictions.append(probs)
 
-        # Aggregate predictions
-        avg_probs = np.mean(predictions, axis=0)
-        predicted_idx = np.argmax(avg_probs)
+        # Improved aggregation - group by orientation and average
         orientations = ["Axial", "Coronal", "Sagittal"]
-        confidence = avg_probs[predicted_idx] * 100
+        orientation_predictions = {orient: [] for orient in orientations}
+        
+        for i, pred in enumerate(predictions):
+            orient_idx = i % 3  # 0=Axial, 1=Coronal, 2=Sagittal
+            orientation_predictions[orientations[orient_idx]].append(pred)
+        
+        # Average predictions per orientation
+        avg_predictions = []
+        for orient in orientations:
+            orient_probs = np.mean(orientation_predictions[orient], axis=0)
+            avg_predictions.append(orient_probs)
+        
+        # Final ensemble prediction
+        final_probs = np.mean(avg_predictions, axis=0)
+        
+        # Apply confidence calibration
+        predicted_idx = np.argmax(final_probs)
+        raw_confidence = final_probs[predicted_idx]
+        
+        # Calibrate confidence based on prediction consistency
+        prediction_std = np.std([pred[predicted_idx] for pred in avg_predictions])
+        consistency_factor = max(0.7, 1.0 - prediction_std)  # Higher consistency = higher confidence
+        
+        # Apply calibration
+        calibrated_confidence = raw_confidence * consistency_factor * 100
 
         print(f"[ResNet18 Results]")
-        print(f"  Probabilities: Axial={avg_probs[0]:.3f}, Coronal={avg_probs[1]:.3f}, Sagittal={avg_probs[2]:.3f}")
-        print(f"  Detected: {orientations[predicted_idx]} (Confidence: {confidence:.1f}%)")
+        print(f"  Probabilities: Axial={final_probs[0]:.3f}, Coronal={final_probs[1]:.3f}, Sagittal={final_probs[2]:.3f}")
+        print(f"  Consistency Factor: {consistency_factor:.3f}")
+        print(f"  Detected: {orientations[predicted_idx]} (Confidence: {calibrated_confidence:.1f}%)")
 
-        return orientations[predicted_idx], confidence
+        return orientations[predicted_idx], calibrated_confidence
 
     except Exception as e:
         print(f"[ResNet18 Error] {e}")
@@ -254,7 +301,7 @@ def detect_orientation_heuristic(volume):
 def detect_orientation_ai(volume):
     """
     Main AI orientation detection function.
-    Tries ResNet18 first, falls back to heuristic if unavailable.
+    Uses original ResNet18 implementation for reliable confidence rates.
     Returns tuple: (orientation, confidence_percentage, method_used)
     """
     if TORCH_AVAILABLE:
