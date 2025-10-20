@@ -5,7 +5,7 @@ Includes custom widgets like CollapsibleBox and SliceView.
 
 import numpy as np
 from PyQt5.QtWidgets import (
-    QWidget, QVBoxLayout, QLabel, QSlider, QSizePolicy, QToolButton, QFrame
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSlider, QSizePolicy, QToolButton, QFrame
 )
 from PyQt5.QtCore import Qt, pyqtSignal, QPropertyAnimation, QEasingCurve, QRect
 from PyQt5.QtGui import QFont
@@ -39,16 +39,17 @@ class CollapsibleBox(QWidget):
         self.toggle_button.setStyleSheet("""
             QToolButton {
                 border: none;
-                background: transparent;
-                font-weight: bold;
-                font-size: 10px;
-                padding: 8px 12px;
+                padding: 8px;
                 text-align: left;
-                color: #2c3e50;
+                font-weight: bold;
+                background-color: #f8f9fa;
+                border-radius: 4px;
             }
             QToolButton:hover {
-                background-color: #ecf0f1;
-                border-radius: 4px;
+                background-color: #e9ecef;
+            }
+            QToolButton:pressed {
+                background-color: #dee2e6;
             }
         """)
         self.toggle_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
@@ -79,15 +80,6 @@ class CollapsibleBox(QWidget):
         main_layout.setContentsMargins(0, 0, 0, 5)
         main_layout.addWidget(self.toggle_button)
         main_layout.addWidget(self.content_area)
-
-        # Style the whole box
-        self.setStyleSheet("""
-            CollapsibleBox {
-                background-color: white;
-                border: 1px solid #cccccc;
-                border-radius: 4px;
-            }
-        """)
 
     def toggle(self):
         """Toggle the collapsed/expanded state with smooth animation."""
@@ -139,6 +131,10 @@ class SliceView(QWidget):
         self.canvas.setMinimumSize(200, 200)
         layout.addWidget(self.canvas, 1)  # Stretch factor 1
         self.ax = self.canvas.figure.subplots()
+        
+        # Set initial background colors
+        self.canvas.figure.patch.set_facecolor('white')
+        self.ax.set_facecolor('white')
 
         self.slice_label = QLabel("Slice: 0")
         self.slice_label.setMaximumHeight(20)
@@ -342,24 +338,6 @@ class SliceView(QWidget):
             print(f"ROI selection error: {e}")
             pass
 
-    def set_dark_mode(self, enabled: bool):
-        """Apply dark or light styling to the view canvas and labels."""
-        bg = '#111111' if enabled else 'white'
-        fg = '#e0e0e0' if enabled else 'black'
-        grid = '#333333' if enabled else '#444444'
-
-        self.ax.set_facecolor(bg)
-        if self.canvas.figure is not None:
-            self.canvas.figure.set_facecolor(bg)
-        self.title_label.setStyleSheet(f"color: {fg};")
-        self.slice_label.setStyleSheet(f"color: {fg};")
-        try:
-            for spine in self.ax.spines.values():
-                spine.set_color(grid)
-        except Exception:
-            pass
-        self.canvas.setStyleSheet(f"background-color: {bg};")
-        self.canvas.draw_idle()
 
     def set_roi_zoom(self, enabled):
         self.roi_zoom_enabled = enabled
@@ -406,7 +384,13 @@ class SliceView(QWidget):
                 roi_rect = (xmin, ymin, xmax, ymax)
             
             self.ax.clear()
-            self.ax.imshow(np.rot90(img), cmap="gray")
+            # Set the axis background color based on dark mode
+            bg_color = 'white'
+            self.ax.set_facecolor(bg_color)
+            
+            # Use appropriate colormap
+            cmap = "gray"
+            self.ax.imshow(np.rot90(img), cmap=cmap)
             self.ax.axis("off")
         except (IndexError, ValueError) as e:
             print(f"Error updating slice {idx} in {self.plane}: {e}")
@@ -419,6 +403,9 @@ class SliceView(QWidget):
                     img = self.get_slice(clamped_idx)
                     self.slice_label.setText(f"Slice: {clamped_idx} (clamped from {idx})")
                     self.ax.clear()
+                    # Set the axis background color
+                    bg_color = 'white'
+                    self.ax.set_facecolor(bg_color)
                     self.ax.imshow(np.rot90(img), cmap="gray")
                     self.ax.axis("off")
                 else:

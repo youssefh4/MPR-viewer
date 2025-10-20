@@ -177,6 +177,7 @@ class DICOM_MPR_Viewer(QWidget):
         sidebar.setWidgetResizable(True)
         sidebar.setMaximumWidth(280)
         sidebar.setMinimumWidth(280)
+        # Sidebar styling will be handled by the main dark mode styling
         sidebar.setStyleSheet("""
             QScrollArea {
                 background-color: #f5f5f5;
@@ -185,6 +186,7 @@ class DICOM_MPR_Viewer(QWidget):
         """)
 
         sidebar_content = QWidget()
+        sidebar_content.setObjectName("sidebar_content")
         sidebar_layout = QVBoxLayout(sidebar_content)
         sidebar_layout.setSpacing(10)
         sidebar_layout.setContentsMargins(10, 10, 10, 10)
@@ -221,18 +223,18 @@ class DICOM_MPR_Viewer(QWidget):
         separator = QFrame()
         separator.setFrameShape(QFrame.HLine)
         separator.setFrameShadow(QFrame.Sunken)
-        separator.setStyleSheet("QFrame { color: #cccccc; }")
+        separator.setObjectName("separator")
         load_group.addWidget(separator)
 
         # Add information labels
         self.info_label = QLabel("No data loaded.")
         self.info_label.setWordWrap(True)
-        self.info_label.setStyleSheet("QLabel { font-size: 12px; color: #555; font-weight: 500; }")
+        self.info_label.setObjectName("info_label")
         load_group.addWidget(self.info_label)
 
         self.bodypart_label = QLabel("Type: Unknown")
         self.bodypart_label.setWordWrap(True)
-        self.bodypart_label.setStyleSheet("QLabel { font-size: 12px; color: #555; font-weight: 500; }")
+        self.bodypart_label.setObjectName("bodypart_label")
         load_group.addWidget(self.bodypart_label)
 
         return load_group
@@ -263,12 +265,12 @@ class DICOM_MPR_Viewer(QWidget):
         # Separator
         separator1 = QFrame()
         separator1.setFrameShape(QFrame.HLine)
-        separator1.setStyleSheet("color: #bdc3c7; margin: 8px 0;")
+        separator1.setObjectName("separator")
         seg_group.addWidget(separator1)
 
         # Organ selection group
         organ_label = QLabel("🎯 Target Organ:")
-        organ_label.setStyleSheet("font-weight: bold; color: #34495e; margin-top: 5px;")
+        organ_label.setObjectName("section_label")
         seg_group.addWidget(organ_label)
         
         self.organ_dropdown = QComboBox()
@@ -280,7 +282,7 @@ class DICOM_MPR_Viewer(QWidget):
 
         # View plane selection
         plane_label = QLabel("📐 View Plane:")
-        plane_label.setStyleSheet("font-weight: bold; color: #34495e; margin-top: 8px;")
+        plane_label.setObjectName("section_label")
         seg_group.addWidget(plane_label)
         
         self.segplane_dropdown = QComboBox()
@@ -305,35 +307,27 @@ class DICOM_MPR_Viewer(QWidget):
         self.overlay_btn = QPushButton("Toggle Overlay: OFF")
         self.overlay_btn.clicked.connect(self.toggle_overlay)
         self.overlay_btn.setCheckable(True)
-        self.overlay_btn.setStyleSheet("QPushButton:checked { background-color: #2196F3; color: white; }")
         display_group.addWidget(self.overlay_btn)
 
         self.roi_btn = QPushButton("Toggle ROI Zoom: OFF")
         self.roi_btn.clicked.connect(self.toggle_roi_zoom)
         self.roi_btn.setCheckable(True)
-        self.roi_btn.setStyleSheet("QPushButton:checked { background-color: #2196F3; color: white; }")
         display_group.addWidget(self.roi_btn)
 
         # Click mode toggle
         self.click_mode_btn = QPushButton("Click Mode: Crosshair")
         self.click_mode_btn.clicked.connect(self.toggle_click_mode)
         self.click_mode_btn.setCheckable(True)
-        self.click_mode_btn.setStyleSheet("QPushButton:checked { background-color: #4CAF50; color: white; }")
         display_group.addWidget(self.click_mode_btn)
 
         self.clear_roi_btn = QPushButton("Clear ROI")
         self.clear_roi_btn.clicked.connect(self.clear_manual_roi)
         display_group.addWidget(self.clear_roi_btn)
 
-        # Dark mode toggle
-        self.darkmode_btn = QPushButton("Dark Mode: OFF")
-        self.darkmode_btn.setCheckable(True)
-        self.darkmode_btn.clicked.connect(self.toggle_dark_mode)
-        self.darkmode_btn.setStyleSheet("QPushButton:checked { background-color: #333333; color: white; }")
-        display_group.addWidget(self.darkmode_btn)
-
         # Fourth view selector
-        display_group.addWidget(QLabel("4th View:"))
+        fourth_view_label = QLabel("4th View:")
+        fourth_view_label.setObjectName("section_label")
+        display_group.addWidget(fourth_view_label)
         self.fourth_view_dropdown = QComboBox()
         self.fourth_view_dropdown.addItems(["Segmentation", "Oblique", "3D Surface"])
         self.fourth_view_dropdown.setCurrentText("Oblique")  # Set default to Oblique
@@ -351,11 +345,13 @@ class DICOM_MPR_Viewer(QWidget):
         # Play/Pause button
         self.play_pause_btn = QPushButton("▶ Play")
         self.play_pause_btn.clicked.connect(self.toggle_playback)
-        self.play_pause_btn.setStyleSheet("QPushButton { background-color: #4CAF50; color: white; font-weight: bold; }")
+        self.play_pause_btn.setObjectName("play_button")
         playback_group.addWidget(self.play_pause_btn)
 
         # View selection
-        playback_group.addWidget(QLabel("Animate View:"))
+        view_label = QLabel("Animate View:")
+        view_label.setObjectName("section_label")
+        playback_group.addWidget(view_label)
         self.playback_view_dropdown = QComboBox()
         self.playback_view_dropdown.addItems(["Axial", "Coronal", "Sagittal", "Segmentation", "Oblique"])
         self.playback_view_dropdown.currentTextChanged.connect(self.change_playback_view)
@@ -395,7 +391,9 @@ class DICOM_MPR_Viewer(QWidget):
         """Create the Oblique View Controls group."""
         oblique_group = CollapsibleBox("🔄 Oblique View Controls", collapsed=False)
 
-        oblique_group.addWidget(QLabel("Reference Plane:"))
+        ref_label = QLabel("Reference Plane:")
+        ref_label.setObjectName("section_label")
+        oblique_group.addWidget(ref_label)
         self.oblique_ref_dropdown = QComboBox()
         self.oblique_ref_dropdown.addItems(["Axial", "Coronal", "Sagittal"])
         self.oblique_ref_dropdown.currentIndexChanged.connect(self.change_oblique_reference)
@@ -452,7 +450,7 @@ class DICOM_MPR_Viewer(QWidget):
 
         # Export quality slider
         quality_label = QLabel("Quality:")
-        quality_label.setStyleSheet("font-weight: bold; color: #34495e; margin-top: 8px;")
+        quality_label.setObjectName("section_label")
         export_group.addWidget(quality_label)
         
         self.quality_slider = QSlider(Qt.Horizontal)
@@ -478,7 +476,7 @@ class DICOM_MPR_Viewer(QWidget):
         # Separator
         separator = QFrame()
         separator.setFrameShape(QFrame.HLine)
-        separator.setStyleSheet("color: #bdc3c7; margin: 8px 0;")
+        separator.setObjectName("separator")
         export_group.addWidget(separator)
 
         # Export buttons with better grouping
@@ -538,6 +536,7 @@ class DICOM_MPR_Viewer(QWidget):
     def _create_image_grid_container(self):
         """Create the right-side container for the image grid."""
         right_container = QWidget()
+        right_container.setObjectName("image_grid_container")
         right_layout = QVBoxLayout(right_container)
         right_layout.setContentsMargins(5, 5, 5, 5)
 
@@ -1090,42 +1089,345 @@ class DICOM_MPR_Viewer(QWidget):
                 self.seg_view.update_slice(seg_slice_idx, self.overlay_on)
                 self.seg_view.slider.blockSignals(False)
 
-    def apply_dark_mode(self, enabled: bool):
-        """Apply dark theme to app widgets and slice views."""
+        """Apply comprehensive dark theme to all UI components."""
         try:
             from PyQt5.QtWidgets import QApplication
             app = QApplication.instance()
             if app is not None:
                 if enabled:
-                    app.setStyleSheet(
-                        """
-                        QWidget { background-color: #121212; color: #e0e0e0; }
-                        QScrollArea { background-color: #121212; }
-                        QFrame { border-color: #333333; }
-                        QPushButton { background-color: #2a2a2a; color: #e0e0e0; border: 1px solid #3a3a3a; }
-                        QPushButton:hover { background-color: #333333; }
-                        QSlider::groove:horizontal { background: #2a2a2a; height: 6px; }
-                        QSlider::handle:horizontal { background: #4a90e2; width: 12px; margin: -4px 0; border-radius: 6px; }
-                        QLabel { color: #e0e0e0; }
-                        """
-                    )
+                    # Perfect dark mode styling
+                    app.setStyleSheet("""
+                        QWidget { 
+                            background-color: #0d1117; 
+                            color: #f0f6fc; 
+                            font-family: 'Segoe UI', 'Arial', sans-serif;
+                            font-size: 11px;
+                        }
+                        QScrollArea { 
+                            background-color: #0d1117; 
+                            border-right: 1px solid #21262d;
+                        }
+                        QFrame { 
+                            border-color: #21262d; 
+                        }
+                        QPushButton { 
+                            background-color: #161b22; 
+                            color: #f0f6fc; 
+                            border: 1px solid #21262d; 
+                            border-radius: 6px;
+                            padding: 8px 16px;
+                            font-weight: 500;
+                            font-size: 11px;
+                        }
+                        QPushButton:hover { 
+                            background-color: #21262d; 
+                            border-color: #30363d;
+                        }
+                        QPushButton:pressed { 
+                            background-color: #0d1117; 
+                            border-color: #161b22;
+                        }
+                        QPushButton:checked { 
+                            background-color: #0969da; 
+                            color: white; 
+                            border-color: #0860ca;
+                        }
+                        QPushButton#play_button { 
+                            background-color: #238636; 
+                            color: white; 
+                            font-weight: bold;
+                        }
+                        QPushButton#play_button:hover { 
+                            background-color: #2ea043; 
+                        }
+                        QPushButton#action_button { 
+                            background-color: #0969da; 
+                            color: white; 
+                            font-weight: bold;
+                        }
+                        QPushButton#action_button:hover { 
+                            background-color: #0860ca; 
+                        }
+                        QComboBox { 
+                            background-color: #161b22 !important; 
+                            color: #f0f6fc !important; 
+                            border: 1px solid #21262d !important; 
+                            border-radius: 6px;
+                            padding: 6px 12px;
+                            min-height: 20px;
+                            font-size: 11px;
+                        }
+                        QComboBox:hover { 
+                            background-color: #21262d !important; 
+                            border-color: #30363d !important;
+                        }
+                        QComboBox:focus { 
+                            border-color: #0969da !important; 
+                        }
+                        QComboBox::drop-down { 
+                            border: none !important; 
+                            background-color: #161b22 !important;
+                            width: 18px;
+                        }
+                        QComboBox::down-arrow { 
+                            image: none !important; 
+                            border-left: 4px solid transparent;
+                            border-right: 4px solid transparent;
+                            border-top: 4px solid #f0f6fc;
+                            margin-right: 6px;
+                        }
+                        QComboBox QAbstractItemView { 
+                            background-color: #161b22 !important; 
+                            color: #f0f6fc !important; 
+                            border: 1px solid #21262d !important; 
+                            border-radius: 6px;
+                            selection-background-color: #0969da !important; 
+                            selection-color: white !important;
+                            outline: none;
+                        }
+                        QComboBox QAbstractItemView::item { 
+                            padding: 6px 10px; 
+                            min-height: 20px;
+                            border-bottom: 1px solid #21262d;
+                            background-color: #161b22 !important;
+                            color: #f0f6fc !important;
+                        }
+                        QComboBox QAbstractItemView::item:hover { 
+                            background-color: #21262d !important; 
+                        }
+                        QComboBox QAbstractItemView::item:selected { 
+                            background-color: #0969da !important; 
+                        }
+                        QSlider::groove:horizontal { 
+                            background: #161b22; 
+                            height: 6px; 
+                            border-radius: 3px;
+                            border: 1px solid #21262d;
+                        }
+                        QSlider::handle:horizontal { 
+                            background: #0969da; 
+                            width: 16px; 
+                            margin: -5px 0; 
+                            border-radius: 8px;
+                            border: 2px solid #ffffff;
+                        }
+                        QLabel { 
+                            color: #f0f6fc; 
+                            background-color: transparent;
+                        }
+                        QLabel[class="info_label"] { 
+                            color: #8b949e; 
+                            font-size: 12px; 
+                            font-weight: 500; 
+                        }
+                        QLabel[class="bodypart_label"] { 
+                            color: #8b949e; 
+                            font-size: 12px; 
+                            font-weight: 500; 
+                        }
+                        QLabel[class="section_label"] { 
+                            color: #f0f6fc; 
+                            font-size: 11px; 
+                            font-weight: 600; 
+                            margin-top: 5px;
+                        }
+                        QCheckBox { 
+                            color: #f0f6fc; 
+                            font-size: 11px;
+                        }
+                        QCheckBox::indicator { 
+                            background-color: #161b22; 
+                            border: 2px solid #21262d; 
+                            border-radius: 3px;
+                            width: 16px;
+                            height: 16px;
+                        }
+                        QCheckBox::indicator:checked { 
+                            background-color: #0969da; 
+                            border-color: #0860ca; 
+                        }
+                        QSpinBox { 
+                            background-color: #161b22; 
+                            color: #f0f6fc; 
+                            border: 1px solid #21262d; 
+                            border-radius: 6px;
+                            padding: 4px 6px;
+                            font-size: 11px;
+                        }
+                        QSpinBox:hover { 
+                            border-color: #30363d; 
+                        }
+                        QSpinBox:focus { 
+                            border-color: #0969da; 
+                        }
+                        QScrollArea { 
+                            background-color: #0d1117; 
+                            border-right: 1px solid #21262d;
+                        }
+                        QScrollArea > QWidget > QWidget { 
+                            background-color: #0d1117; 
+                        }
+                        QGridLayout { 
+                            background-color: transparent; 
+                        }
+                        QVBoxLayout { 
+                            background-color: transparent; 
+                        }
+                        QHBoxLayout { 
+                            background-color: transparent; 
+                        }
+                        QWidget#sidebar_content { 
+                            background-color: #0d1117; 
+                        }
+                        QWidget#image_grid_container { 
+                            background-color: #0d1117; 
+                        }
+                        QWidget#image_grid_container > * { 
+                            background-color: #0d1117; 
+                        }
+                        QFrame[frameShape="4"] { 
+                            color: #21262d; 
+                        }
+                        QFrame#separator { 
+                            color: #21262d; 
+                        }
+                        FigureCanvasQTAgg { 
+                            background-color: #0d1117; 
+                            border: 1px solid #21262d;
+                        }
+                    """)
                 else:
-                    app.setStyleSheet("")
-        except Exception:
-            pass
+                    # Light mode styling
+                    app.setStyleSheet("""
+                        QWidget { 
+                            font-family: 'Segoe UI', 'Arial', sans-serif; 
+                        }
+                        QLabel { 
+                            font-size: 11px; 
+                            color: #2c3e50; 
+                            background-color: transparent;
+                        }
+                        QLabel[class="info_label"] { 
+                            color: #555555; 
+                            font-size: 12px; 
+                            font-weight: 500; 
+                        }
+                        QLabel[class="bodypart_label"] { 
+                            color: #555555; 
+                            font-size: 12px; 
+                            font-weight: 500; 
+                        }
+                        QLabel[class="section_label"] { 
+                            color: #34495e; 
+                            font-size: 11px; 
+                            font-weight: bold; 
+                            margin-top: 5px;
+                        }
+                        QPushButton { 
+                            font-size: 11px; 
+                            font-weight: 600; 
+                            padding: 8px 16px; 
+                            border-radius: 6px; 
+                            border: 1px solid #bdc3c7; 
+                            background-color: #ecf0f1; 
+                            color: #2c3e50; 
+                        }
+                        QPushButton:hover { 
+                            background-color: #d5dbdb; 
+                            border-color: #95a5a6; 
+                        }
+                        QPushButton:pressed { 
+                            background-color: #bdc3c7; 
+                        }
+                        QComboBox { 
+                            font-size: 11px; 
+                            padding: 6px 12px; 
+                            border: 2px solid #bdc3c7; 
+                            border-radius: 6px; 
+                            background-color: white; 
+                            min-height: 20px; 
+                        }
+                        QComboBox:hover { 
+                            border-color: #3498db; 
+                        }
+                        QComboBox:focus { 
+                            border-color: #3498db; 
+                        }
+                        QComboBox::drop-down { 
+                            border: none; 
+                            background-color: white;
+                        }
+                        QComboBox::down-arrow { 
+                            image: none; 
+                            border-left: 5px solid transparent;
+                            border-right: 5px solid transparent;
+                            border-top: 5px solid #2c3e50;
+                            margin-right: 5px;
+                        }
+                        QComboBox QAbstractItemView { 
+                            background-color: white; 
+                            color: #2c3e50; 
+                            border: 1px solid #bdc3c7; 
+                            selection-background-color: #3498db; 
+                            selection-color: white;
+                        }
+                        QComboBox QAbstractItemView::item { 
+                            padding: 4px 8px; 
+                            min-height: 20px;
+                        }
+                        QComboBox QAbstractItemView::item:hover { 
+                            background-color: #ecf0f1; 
+                        }
+                        QSlider::groove:horizontal { 
+                            border: 1px solid #bdc3c7; 
+                            height: 6px; 
+                            background: #ecf0f1; 
+                            border-radius: 3px; 
+                        }
+                        QSlider::handle:horizontal { 
+                            background: #3498db; 
+                            border: 2px solid #ffffff; 
+                            width: 16px; 
+                            margin: -5px 0; 
+                            border-radius: 8px; 
+                        }
+                        QCheckBox { 
+                            font-size: 11px; 
+                            color: #2c3e50; 
+                            font-weight: 500; 
+                        }
+                        QCheckBox::indicator { 
+                            width: 16px; 
+                            height: 16px; 
+                            border: 2px solid #bdc3c7; 
+                            border-radius: 3px; 
+                            background: white; 
+                        }
+                        QCheckBox::indicator:checked { 
+                            background: #3498db; 
+                            border-color: #2980b9; 
+                        }
+                        QWidget#sidebar_content { 
+                            background-color: #f5f5f5; 
+                        }
+                        QWidget#image_grid_container { 
+                            background-color: white; 
+                        }
+                        QFrame[frameShape="4"] { 
+                            color: #cccccc; 
+                        }
+                        QFrame#separator { 
+                            color: #cccccc; 
+                        }
+                        FigureCanvasQTAgg { 
+                            background-color: white; 
+                            border: 1px solid #cccccc;
+                        }
+                    """)
+        except Exception as e:
+            print(f"Error applying dark mode: {e}")
 
-        # Apply to each view canvas/labels
-        for view in [self.views_dict.get("Axial"), self.views_dict.get("Coronal"), self.views_dict.get("Sagittal"), self.seg_view, self.oblique_view]:
-            if view is not None and hasattr(view, 'set_dark_mode'):
-                view.set_dark_mode(enabled)
 
-    def toggle_dark_mode(self):
-        is_enabled = not self.darkmode_btn.isChecked()  # will flip after setChecked
-        # Reflect current checked state text after toggle
-        enabled = not (self.darkmode_btn.text().endswith("OFF")) if False else self.darkmode_btn.isChecked()
-        enabled = self.darkmode_btn.isChecked()
-        self.darkmode_btn.setText(f"Dark Mode: {'ON' if enabled else 'OFF'}")
-        self.apply_dark_mode(enabled)
 
     # Slider event handlers
     def main_view_slider_changed(self, plane, value):
@@ -1621,7 +1923,7 @@ class DICOM_MPR_Viewer(QWidget):
         # Add a button to show 3D surface
         show_3d_btn = QPushButton("Show 3D Surface")
         show_3d_btn.clicked.connect(self.show_3d_surface)
-        show_3d_btn.setStyleSheet("QPushButton { background-color: #2196F3; color: white; font-weight: bold; }")
+        show_3d_btn.setObjectName("action_button")
         layout.addWidget(show_3d_btn)
         
         # Add threshold control

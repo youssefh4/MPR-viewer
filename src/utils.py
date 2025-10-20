@@ -89,7 +89,7 @@ def detect_orientation_resnet18(volume):
         
         # Load only the specified ResNet model
         model_paths = [
-            r"X:\task 2 trials\Task 2\mpr_viewer\models\resnet18_orientation_finetuned.pth"
+            r"C:\Users\youss\OneDrive\Desktop\MPR-viewer\models\resnet18_orientation_finetuned.pth"
         ]
         
         model_loaded = False
