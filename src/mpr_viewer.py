@@ -10,10 +10,10 @@ from PyQt5.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QGridLayout, QPushButton,
     QFileDialog, QLabel, QSlider, QMessageBox, QComboBox, QHBoxLayout,
     QCheckBox, QGroupBox, QSizePolicy, QScrollArea, QFrame, QSpinBox,
-    QToolButton
+    QToolButton, QMainWindow, QMenuBar, QMenu, QStatusBar, QAction
 )
 from PyQt5.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve, pyqtSignal
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QKeySequence
 
 # 3D visualization imports
 try:
@@ -32,7 +32,7 @@ from config import DEFAULT_OUTPUT_DIR, DEFAULT_PLAYBACK_SPEED, DEFAULT_WINDOW_SI
 
 class DICOM_MPR_Viewer(QWidget):
     def __init__(self):
-        """Initialize the MPR viewer with sidebar controls and image grid."""
+        """Initialize the MPR viewer with menu bar, sidebar controls and image grid."""
         super().__init__()
         self._init_window_settings()
         self._init_variables()
@@ -43,6 +43,73 @@ class DICOM_MPR_Viewer(QWidget):
         self.setWindowTitle("Medical MPR Viewer - DICOM & NIfTI with TotalSegmentator")
         self.setGeometry(60, 60, *DEFAULT_WINDOW_SIZE)
         self.setMinimumSize(*DEFAULT_MIN_WINDOW_SIZE)
+        
+        # Apply modern typography
+        self.setStyleSheet("""
+            QWidget {
+                font-family: 'Segoe UI', 'Arial', sans-serif;
+            }
+            QLabel {
+                font-size: 11px;
+                color: #2c3e50;
+            }
+            QPushButton {
+                font-size: 11px;
+                font-weight: 600;
+                padding: 8px 16px;
+                border-radius: 6px;
+                border: 1px solid #bdc3c7;
+                background-color: #ecf0f1;
+                color: #2c3e50;
+            }
+            QPushButton:hover {
+                background-color: #d5dbdb;
+                border-color: #95a5a6;
+            }
+            QPushButton:pressed {
+                background-color: #bdc3c7;
+            }
+            QComboBox {
+                font-size: 11px;
+                padding: 6px 12px;
+                border: 2px solid #bdc3c7;
+                border-radius: 6px;
+                background-color: white;
+                min-height: 20px;
+            }
+            QComboBox:hover {
+                border-color: #3498db;
+            }
+            QSlider::groove:horizontal {
+                border: 1px solid #bdc3c7;
+                height: 6px;
+                background: #ecf0f1;
+                border-radius: 3px;
+            }
+            QSlider::handle:horizontal {
+                background: #3498db;
+                border: 2px solid #ffffff;
+                width: 16px;
+                margin: -5px 0;
+                border-radius: 8px;
+            }
+            QCheckBox {
+                font-size: 11px;
+                color: #2c3e50;
+                font-weight: 500;
+            }
+            QCheckBox::indicator {
+                width: 16px;
+                height: 16px;
+                border: 2px solid #bdc3c7;
+                border-radius: 3px;
+                background: white;
+            }
+            QCheckBox::indicator:checked {
+                background: #3498db;
+                border-color: #2980b9;
+            }
+        """)
 
     def _init_variables(self):
         """Initialize all instance variables for data and state management."""
@@ -68,7 +135,7 @@ class DICOM_MPR_Viewer(QWidget):
         self.oblique_rotation_y = 0
         self.oblique_rotation_z = 0
         self.oblique_reference_plane = "Axial"
-        self.fourth_view_mode = "Segmentation"
+        self.fourth_view_mode = "Oblique"
 
         # View state
         self.slice_indices = {"Axial": 0, "Coronal": 0, "Sagittal": 0, "Oblique": 0}
@@ -91,6 +158,7 @@ class DICOM_MPR_Viewer(QWidget):
 
     def _create_ui(self):
         """Create the main user interface layout."""
+        # Main layout
         main_layout = QHBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
@@ -170,24 +238,56 @@ class DICOM_MPR_Viewer(QWidget):
         return load_group
 
     def _create_segmentation_group(self):
-        """Create the Segmentation control group."""
+        """Create the Segmentation control group with better visual grouping."""
         seg_group = CollapsibleBox("🔬 Segmentation")
 
-        btn_run_seg = QPushButton("Run TotalSegmentator")
+        # Main action button
+        btn_run_seg = QPushButton("🚀 Run TotalSegmentator")
         btn_run_seg.clicked.connect(self.run_segmentation)
-        btn_run_seg.setStyleSheet("QPushButton { background-color: #4CAF50; color: white; font-weight: bold; }")
+        btn_run_seg.setStyleSheet("""
+            QPushButton {
+                background-color: #27ae60;
+                color: white;
+                font-weight: bold;
+                padding: 12px;
+                border-radius: 8px;
+                border: none;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background-color: #229954;
+            }
+        """)
         seg_group.addWidget(btn_run_seg)
 
-        seg_group.addWidget(QLabel("Organ:"))
+        # Separator
+        separator1 = QFrame()
+        separator1.setFrameShape(QFrame.HLine)
+        separator1.setStyleSheet("color: #bdc3c7; margin: 8px 0;")
+        seg_group.addWidget(separator1)
+
+        # Organ selection group
+        organ_label = QLabel("🎯 Target Organ:")
+        organ_label.setStyleSheet("font-weight: bold; color: #34495e; margin-top: 5px;")
+        seg_group.addWidget(organ_label)
+        
         self.organ_dropdown = QComboBox()
         self.organ_dropdown.addItems(["None", "Lungs", "Heart", "Brain", "Kidneys", "Liver", "Spleen", "Spine"])
         self.organ_dropdown.currentIndexChanged.connect(self.prepare_masks)
+        # Ensure proper focus and event handling
+        self.organ_dropdown.setFocusPolicy(Qt.StrongFocus)
         seg_group.addWidget(self.organ_dropdown)
 
-        seg_group.addWidget(QLabel("View Plane:"))
+        # View plane selection
+        plane_label = QLabel("📐 View Plane:")
+        plane_label.setStyleSheet("font-weight: bold; color: #34495e; margin-top: 8px;")
+        seg_group.addWidget(plane_label)
+        
         self.segplane_dropdown = QComboBox()
         self.segplane_dropdown.addItems(["Axial", "Coronal", "Sagittal"])
         self.segplane_dropdown.currentIndexChanged.connect(self.change_segmentation_plane)
+        # Ensure proper focus and event handling
+        self.segplane_dropdown.setFocusPolicy(Qt.StrongFocus)
         seg_group.addWidget(self.segplane_dropdown)
 
         return seg_group
@@ -236,7 +336,10 @@ class DICOM_MPR_Viewer(QWidget):
         display_group.addWidget(QLabel("4th View:"))
         self.fourth_view_dropdown = QComboBox()
         self.fourth_view_dropdown.addItems(["Segmentation", "Oblique", "3D Surface"])
+        self.fourth_view_dropdown.setCurrentText("Oblique")  # Set default to Oblique
         self.fourth_view_dropdown.currentIndexChanged.connect(self.switch_fourth_view)
+        # Ensure proper focus and event handling
+        self.fourth_view_dropdown.setFocusPolicy(Qt.StrongFocus)
         display_group.addWidget(self.fourth_view_dropdown)
 
         return display_group
@@ -256,6 +359,8 @@ class DICOM_MPR_Viewer(QWidget):
         self.playback_view_dropdown = QComboBox()
         self.playback_view_dropdown.addItems(["Axial", "Coronal", "Sagittal", "Segmentation", "Oblique"])
         self.playback_view_dropdown.currentTextChanged.connect(self.change_playback_view)
+        # Ensure proper focus and event handling
+        self.playback_view_dropdown.setFocusPolicy(Qt.StrongFocus)
         playback_group.addWidget(self.playback_view_dropdown)
 
         # Speed control
@@ -288,12 +393,14 @@ class DICOM_MPR_Viewer(QWidget):
 
     def _create_oblique_controls_group(self):
         """Create the Oblique View Controls group."""
-        oblique_group = CollapsibleBox("🔄 Oblique View Controls", collapsed=True)
+        oblique_group = CollapsibleBox("🔄 Oblique View Controls", collapsed=False)
 
         oblique_group.addWidget(QLabel("Reference Plane:"))
         self.oblique_ref_dropdown = QComboBox()
         self.oblique_ref_dropdown.addItems(["Axial", "Coronal", "Sagittal"])
         self.oblique_ref_dropdown.currentIndexChanged.connect(self.change_oblique_reference)
+        # Ensure proper focus and event handling
+        self.oblique_ref_dropdown.setFocusPolicy(Qt.StrongFocus)
         oblique_group.addWidget(self.oblique_ref_dropdown)
 
         # Rotation sliders
@@ -340,21 +447,90 @@ class DICOM_MPR_Viewer(QWidget):
         return oblique_group
 
     def _create_export_group(self):
-        """Create the Export control group."""
-        export_group = CollapsibleBox("🗄 Export", collapsed=True)
+        """Create the Export control group with enhanced options."""
+        export_group = CollapsibleBox("📤 Export Options", collapsed=False)
 
-        self.export_btn = QPushButton("Export Organ Slices")
+        # Export quality slider
+        quality_label = QLabel("Quality:")
+        quality_label.setStyleSheet("font-weight: bold; color: #34495e; margin-top: 8px;")
+        export_group.addWidget(quality_label)
+        
+        self.quality_slider = QSlider(Qt.Horizontal)
+        self.quality_slider.setRange(50, 100)
+        self.quality_slider.setValue(95)
+        self.quality_slider.setStyleSheet("""
+            QSlider::groove:horizontal {
+                border: 1px solid #bdc3c7;
+                height: 6px;
+                background: #ecf0f1;
+                border-radius: 3px;
+            }
+            QSlider::handle:horizontal {
+                background: #3498db;
+                border: 2px solid #ffffff;
+                width: 16px;
+                margin: -5px 0;
+                border-radius: 8px;
+            }
+        """)
+        export_group.addWidget(self.quality_slider)
+
+        # Separator
+        separator = QFrame()
+        separator.setFrameShape(QFrame.HLine)
+        separator.setStyleSheet("color: #bdc3c7; margin: 8px 0;")
+        export_group.addWidget(separator)
+
+        # Export buttons with better grouping
+        self.export_btn = QPushButton("📊 Export Organ Slices")
         self.export_btn.clicked.connect(self.export_organ_slices)
+        self.export_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #27ae60;
+                color: white;
+                font-weight: bold;
+                padding: 10px;
+                border-radius: 6px;
+                border: none;
+            }
+            QPushButton:hover {
+                background-color: #229954;
+            }
+        """)
         export_group.addWidget(self.export_btn)
 
-        # Manual export controls
-        manual_btn = QPushButton("Manual Export: Choose Slices…")
+        manual_btn = QPushButton("✋ Manual Export: Choose Slices…")
         manual_btn.clicked.connect(self.export_manual_slices)
+        manual_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #f39c12;
+                color: white;
+                font-weight: bold;
+                padding: 10px;
+                border-radius: 6px;
+                border: none;
+            }
+            QPushButton:hover {
+                background-color: #e67e22;
+            }
+        """)
         export_group.addWidget(manual_btn)
 
-        # Export all views
-        export_all_btn = QPushButton("Export All Views")
+        export_all_btn = QPushButton("🖼 Export All Views")
         export_all_btn.clicked.connect(self.export_all_views)
+        export_all_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #8e44ad;
+                color: white;
+                font-weight: bold;
+                padding: 10px;
+                border-radius: 6px;
+                border: none;
+            }
+            QPushButton:hover {
+                background-color: #7d3c98;
+            }
+        """)
         export_group.addWidget(export_all_btn)
 
         return export_group
@@ -1119,6 +1295,8 @@ class DICOM_MPR_Viewer(QWidget):
         plane_combo = QComboBox()
         plane_combo.addItems(["Axial", "Coronal", "Sagittal"])
         plane_combo.setCurrentText(self.segmentation_plane if self.segmentation_plane in ["Axial", "Coronal", "Sagittal"] else "Axial")
+        # Ensure proper focus and event handling
+        plane_combo.setFocusPolicy(Qt.StrongFocus)
         layout.addWidget(plane_combo)
         
         # Current slice info

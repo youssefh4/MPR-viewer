@@ -7,7 +7,7 @@ import numpy as np
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QSlider, QSizePolicy, QToolButton, QFrame
 )
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal, QPropertyAnimation, QEasingCurve, QRect
 from PyQt5.QtGui import QFont
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib.pyplot as plt
@@ -28,17 +28,27 @@ class CollapsibleBox(QWidget):
         self.toggle_button.setText(title)
         self.toggle_button.setCheckable(True)
         self.toggle_button.setChecked(not collapsed)
+        
+        # Enhanced typography
+        font = QFont()
+        font.setFamily("Segoe UI")
+        font.setPointSize(10)
+        font.setWeight(QFont.Bold)
+        self.toggle_button.setFont(font)
+        
         self.toggle_button.setStyleSheet("""
             QToolButton {
                 border: none;
                 background: transparent;
                 font-weight: bold;
-                font-size: 11px;
-                padding: 5px;
+                font-size: 10px;
+                padding: 8px 12px;
                 text-align: left;
+                color: #2c3e50;
             }
             QToolButton:hover {
-                background-color: #e0e0e0;
+                background-color: #ecf0f1;
+                border-radius: 4px;
             }
         """)
         self.toggle_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
@@ -47,10 +57,21 @@ class CollapsibleBox(QWidget):
 
         self.content_area = QWidget()
         self.content_layout = QVBoxLayout()
-        self.content_layout.setSpacing(5)
-        self.content_layout.setContentsMargins(10, 5, 10, 10)
+        self.content_layout.setSpacing(8)
+        self.content_layout.setContentsMargins(12, 8, 12, 12)
         self.content_area.setLayout(self.content_layout)
-        self.content_area.setVisible(not collapsed)
+        
+        # Animation setup
+        self.animation = QPropertyAnimation(self.content_area, b"maximumHeight")
+        self.animation.setDuration(200)
+        self.animation.setEasingCurve(QEasingCurve.OutQuad)
+        
+        # Set initial state
+        if collapsed:
+            self.content_area.setMaximumHeight(0)
+            self.content_area.setVisible(False)
+        else:
+            self.content_area.setVisible(True)
 
         # Main layout
         main_layout = QVBoxLayout(self)
@@ -69,9 +90,11 @@ class CollapsibleBox(QWidget):
         """)
 
     def toggle(self):
-        """Toggle the collapsed/expanded state."""
+        """Toggle the collapsed/expanded state with smooth animation."""
         checked = self.toggle_button.isChecked()
         self.toggle_button.setArrowType(Qt.DownArrow if checked else Qt.RightArrow)
+        
+        # Simple toggle without animation to avoid conflicts with dropdowns
         self.content_area.setVisible(checked)
 
     def addWidget(self, widget):
