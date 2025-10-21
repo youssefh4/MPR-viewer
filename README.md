@@ -30,7 +30,9 @@
 
 ### Advanced Segmentation
 - **TotalSegmentator Integration** - Automatic organ segmentation using AI
-- **Organ Detection** - Automatic detection of lungs, heart, brain, kidneys, liver, spleen, and spine
+- **AI Orientation Detection** - Intelligent detection of scan orientation for both DICOM and NIfTI files
+- **Top 3 Organ Detection** - Automatically identifies and displays the top 3 organs by volume
+- **Organ Detection** - Automatic detection of lungs, heart, brain, kidneys, liver, spleen, spine, and ribcage
 - **Color-coded Visualization** - Different colors for different organ types
 - **Mask Management** - Load, save, and manipulate segmentation masks
 
@@ -39,6 +41,26 @@
 - **Collapsible Sidebar** - Organized, clutter-free interface
 - **Responsive Design** - Adapts to different screen sizes
 - **Intuitive Controls** - Easy-to-use medical imaging tools
+
+## 🎥 Demo Videos
+
+See the MPR Viewer in action with these demonstration videos:
+
+### Basic Navigation and Features
+[![MPR Viewer Demo - Basic Navigation](assests/Screenshot%202025-10-21%20194052.png)](assests/Oblique.mp4)
+*Click to watch: Basic navigation, crosshair synchronization, and slice browsing*
+
+### Advanced ROI and Zoom Functionality
+[![MPR Viewer Demo - ROI Features](assests/Screenshot%202025-10-21%20210700.png)](assests/Roi.mp4)
+*Click to watch: Region of Interest (ROI) selection and zoom functionality*
+
+### Automatic Playback Controls
+[![MPR Viewer Demo - Playback](assests/Screenshot%202025-10-21%20212843.png)](assests/Playback.mp4)
+*Click to watch: Automatic slice playback with speed and direction control*
+
+### Oblique Slicing and 3D Visualization
+[![MPR Viewer Demo - Oblique Slicing](assests/Screenshot%202025-10-21%20202331.png)](assests/Oblique.mp4)
+*Click to watch: Advanced oblique slicing with 3D rotation controls*
 
 ## 📋 Requirements
 
