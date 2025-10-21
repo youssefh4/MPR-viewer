@@ -19,6 +19,8 @@
 
 ### Core Functionality
 - **Multi-Planar Reconstruction (MPR)** - View medical images in axial, sagittal, and coronal planes
+- **AI Orientation Detection** - Automatic detection of primary anatomical plane using ResNet18 AI model
+- **Dynamic View Arrangement** - Views automatically arrange based on detected orientation
 - **Oblique Slicing** - Advanced 3D rotation and oblique plane visualization
 - **Crosshair Navigation** - Synchronized navigation across all views
 - **ROI Zoom** - Region of interest zoom functionality
@@ -29,9 +31,17 @@
 - **NIfTI Files** - Support for NIfTI-1 and NIfTI-2 formats
 - **External Masks** - Load custom segmentation masks
 
+### AI-Powered Features
+- **Smart Orientation Detection** - ResNet18 AI model automatically detects primary anatomical plane (Axial, Coronal, Sagittal)
+- **Confidence Scoring** - AI provides confidence percentages for orientation detection
+- **Fallback Detection** - DICOM metadata fallback when AI detection fails
+- **Top 3 Organ Analysis** - AI identifies and ranks organs by volume for comprehensive analysis
+- **Intelligent View Layout** - Main view automatically positioned based on detected orientation
+
 ### Advanced Segmentation
 - **TotalSegmentator Integration** - Automatic organ segmentation using AI
-- **Organ Detection** - Automatic detection of lungs, heart, brain, kidneys, liver, spleen, and spine
+- **Organ Detection** - Automatic detection of lungs, heart, brain, kidneys, liver, spleen, spine, and ribcage
+- **Top 3 Organ Detection** - AI identifies and displays the top 3 organs by volume
 - **Color-coded Visualization** - Different colors for different organ types
 - **Mask Management** - Load, save, and manipulate segmentation masks
 
@@ -106,7 +116,8 @@ https://github.com/user-attachments/assets/b1055eac-6ff2-4055-ae3e-e193bc16b96b
 - Nibabel >= 3.2.0
 - SimpleITK >= 2.1.0
 - TotalSegmentator >= 1.5.0
-- PyTorch >= 1.9.0 (optional, for AI orientation detection)
+- PyTorch >= 1.9.0 (required for AI orientation detection)
+- ResNet18 Model (included in models/ directory)
 
 ## 🛠️ Installation
 
@@ -144,6 +155,7 @@ pip install torch torchvision
    - Click "Load DICOM Series" or "Load NIfTI File"
    - Navigate to your medical imaging data
    - Select the folder/file to load
+   - AI will automatically detect orientation and arrange views accordingly
 
 3. **Navigate Images**:
    - Use mouse wheel to scroll through slices
@@ -154,6 +166,7 @@ pip install torch torchvision
    - Click "Run TotalSegmentator" in the sidebar
    - Wait for AI processing to complete
    - View segmented organs with color coding
+   - AI will display the top 3 detected organs by volume
 
 ### Advanced Features
 - **Oblique Slicing**: Use rotation controls for 3D visualization
@@ -188,8 +201,9 @@ MPR-viewer/
 The application can be configured through `src/config.py`:
 
 - **Organ Colors**: Customize colors for different organ types
-- **Organ Groups**: Define organ groupings for segmentation
+- **Organ Groups**: Define organ groupings for segmentation (including ribcage support)
 - **Default Settings**: Window size, playback speed, output directories
+- **AI Model**: ResNet18 orientation detection model path and settings
 
 ## 📖 Documentation
 
