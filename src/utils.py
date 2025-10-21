@@ -47,7 +47,7 @@ def detect_main_plane_dicom(first_dcm_path):
         col = np.array(iop[3:6], dtype=float)
         normal = np.cross(row, col)
         idx = int(np.argmax(np.abs(normal)))
-        return ["Sagittal", "Coronal", "Axial"][idx]
+        return ["Axial", "Coronal", "Sagittal"][idx]
     except Exception:
         return "Axial"
 
