@@ -497,7 +497,7 @@ class SliceView(QWidget):
             
             # Use appropriate colormap
             cmap = "gray"
-            self.ax.imshow(np.rot90(img), cmap=cmap)
+            self.ax.imshow(img, cmap=cmap)  # Remove rotation to test
             self.ax.axis("off")
         except (IndexError, ValueError) as e:
             print(f"Error updating slice {idx} in {self.plane}: {e}")
@@ -513,7 +513,7 @@ class SliceView(QWidget):
                     # Set the axis background color
                     bg_color = '#1e1e1e' if self.is_dark_mode else 'white'
                     self.ax.set_facecolor(bg_color)
-                    self.ax.imshow(np.rot90(img), cmap="gray")
+                    self.ax.imshow(img, cmap="gray")  # Remove rotation to test
                     self.ax.axis("off")
                 else:
                     return
@@ -537,13 +537,13 @@ class SliceView(QWidget):
         if show_mask and mask is not None and np.any(mask):
             try:
                 color_mask = self.get_color(idx) if self.get_color else None
-                for c in measure.find_contours(np.rot90(mask), 0.5):
+                for c in measure.find_contours(mask, 0.5):
                     self.ax.plot(c[:, 1], c[:, 0], color="white", linewidth=1.2)
                 if isinstance(color_mask, dict):
                     for name, arr in color_mask.items():
                         if arr is not None and np.any(arr):
                             col = OUTLINE_COLORS.get(name, "red")
-                            for c in measure.find_contours(np.rot90(arr), 0.5):
+                            for c in measure.find_contours(arr, 0.5):
                                 self.ax.plot(c[:, 1], c[:, 0], color=col, linewidth=1.4)
             except Exception as e:
                 print(f"[Mask display error {self.plane}] {e}")
@@ -551,7 +551,7 @@ class SliceView(QWidget):
         # Manual ROI zoom takes precedence when enabled
         if self.click_mode == "roi" and self.manual_roi_rect is not None and self.roi_zoom_enabled:
             xmin, ymin, xmax, ymax = self.manual_roi_rect
-            img_h, img_w = np.rot90(img).shape
+            img_h, img_w = img.shape
             xmin = int(np.clip(xmin, 0, img_w - 1))
             xmax = int(np.clip(xmax, 0, img_w - 1))
             ymin = int(np.clip(ymin, 0, img_h - 1))
@@ -598,12 +598,12 @@ class SliceView(QWidget):
             self.ax.set_xlim(xlim_low, xlim_high)
             self.ax.set_ylim(ylim_high, ylim_low)
 
-        self.draw_crosshairs(np.rot90(img).shape)
+        self.draw_crosshairs(img.shape)
         self.canvas.draw()
 
     @staticmethod
     def get_slice_bounding_box(mask_slice):
-        mask_slice = np.rot90(mask_slice)
+        # mask_slice = np.rot90(mask_slice)  # Remove rotation
         rows = np.any(mask_slice, axis=1)
         cols = np.any(mask_slice, axis=0)
         if not np.any(rows) or not np.any(cols):

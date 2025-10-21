@@ -896,12 +896,27 @@ class DICOM_MPR_Viewer(QWidget):
         secondary2_view.slider.setMaximum(secondary2_max)
 
         # Ensure slice indices are within bounds after reorientation
+        # Store both dynamic labels and anatomical coordinates
         self.slice_indices = {
             main_label: main_default,
             secondary1_label: secondary1_default,
             secondary2_label: secondary2_default,
             "Oblique": self.slice_indices.get("Oblique", 0)
         }
+        
+        # Also maintain anatomical coordinates for crosshair system
+        if detected_plane == "Coronal":
+            self.slice_indices["Axial"] = secondary1_default
+            self.slice_indices["Coronal"] = main_default
+            self.slice_indices["Sagittal"] = secondary2_default
+        elif detected_plane == "Sagittal":
+            self.slice_indices["Axial"] = secondary2_default
+            self.slice_indices["Coronal"] = secondary1_default
+            self.slice_indices["Sagittal"] = main_default
+        else:  # Axial
+            self.slice_indices["Axial"] = main_default
+            self.slice_indices["Coronal"] = secondary1_default
+            self.slice_indices["Sagittal"] = secondary2_default
 
         # Set slider values and connect signals
         main_view.slider.setValue(self.slice_indices[main_label])
@@ -1066,12 +1081,18 @@ class DICOM_MPR_Viewer(QWidget):
         """Update crosshair positions across all views."""
         if self.volume is None:
             return
-        axial_idx = self.slice_indices["Axial"]
-        coronal_idx = self.slice_indices["Coronal"]
-        sagittal_idx = self.slice_indices["Sagittal"]
+        
+        # Get slice indices for all three anatomical planes
         volume_shape = self.volume.shape
+        
+        # Map dynamic labels to anatomical coordinates
+        axial_idx = self.slice_indices.get("Axial", 0)
+        coronal_idx = self.slice_indices.get("Coronal", 0)  
+        sagittal_idx = self.slice_indices.get("Sagittal", 0)
+        
+        # Update crosshairs for all views
         for view in self.views:
-            if view.plane in ["Axial", "Coronal", "Sagittal"]:
+            if view.plane in self.views_dict.keys():
                 view.set_crosshair_position(axial_idx, coronal_idx, sagittal_idx, volume_shape)
 
     def refresh_all_views(self):
@@ -1295,9 +1316,35 @@ class DICOM_MPR_Viewer(QWidget):
         self._validate_slice_indices()
         
         self.slice_indices[plane] = value
+        
+        # Also update anatomical coordinates
+        detected_plane = getattr(self.data_loader, 'detected_plane', 'Axial')
+        if detected_plane == "Coronal":
+            if plane == "Coronal":
+                self.slice_indices["Coronal"] = value
+            elif plane == "Axial":
+                self.slice_indices["Axial"] = value
+            elif plane == "Sagittal":
+                self.slice_indices["Sagittal"] = value
+        elif detected_plane == "Sagittal":
+            if plane == "Sagittal":
+                self.slice_indices["Sagittal"] = value
+            elif plane == "Coronal":
+                self.slice_indices["Coronal"] = value
+            elif plane == "Axial":
+                self.slice_indices["Axial"] = value
+        else:  # Axial
+            if plane == "Axial":
+                self.slice_indices["Axial"] = value
+            elif plane == "Coronal":
+                self.slice_indices["Coronal"] = value
+            elif plane == "Sagittal":
+                self.slice_indices["Sagittal"] = value
+        
         self.update_all_crosshairs()
         self.views_dict[plane].update_slice(value, self.overlay_on)
-        for other_plane in ["Axial", "Coronal", "Sagittal"]:
+        # Use actual view dictionary keys instead of hardcoded plane names
+        for other_plane in self.views_dict.keys():
             if other_plane != plane:
                 self.views_dict[other_plane].update_slice(self.slice_indices[other_plane], self.overlay_on)
         if self.segmentation_plane == plane and hasattr(self, 'seg_view'):
