@@ -11,7 +11,8 @@ OUTLINE_COLORS = {
     "kidneys": "magenta",
     "liver": "orange",
     "spleen": "cyan",
-    "spine": "yellow"
+    "spine": "yellow",
+    "ribcage": "brown"
 }
 
 # Organ groups for TotalSegmentator - used in both detection and masking
@@ -27,7 +28,9 @@ ORGAN_GROUPS_SIMPLE = {
         "C1", "C2", "C3", "C4", "C5", "C6", "C7",
         "T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12",
         "L1", "L2", "L3", "L4", "L5", "S1"
-    ]] + ["sacrum"]
+    ]] + ["sacrum"],
+    "Ribcage": [f"rib_left_{i}" for i in range(1, 13)] + [f"rib_right_{i}" for i in range(1, 13)] + 
+              ["sternum", "costal_cartilages"]
 }
 
 # Heart organ with color separation (for prepare_masks)
@@ -41,7 +44,8 @@ ORGAN_KEYWORDS = {
     "Kidneys": ["kidney"],
     "Liver": ["liver"],
     "Spleen": ["spleen"],
-    "Spine": ["vertebra", "spinal", "sacrum"]
+    "Spine": ["vertebra", "spinal", "sacrum"],
+    "Ribcage": ["rib", "sternum", "costal", "ribcage"]
 }
 
 # Default settings

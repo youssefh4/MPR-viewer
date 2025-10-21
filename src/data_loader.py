@@ -58,8 +58,22 @@ class DataLoader:
             
             self.original_volume = arr.copy()
             self.volume = arr
-            self.detected_plane = detect_main_plane_dicom(files[0])
-            self.main_plane = self.detected_plane
+            
+            # Try AI-based orientation detection first, fallback to DICOM metadata
+            try:
+                print("[Info] Attempting AI-based orientation detection for DICOM...")
+                orientation, confidence, method = detect_orientation_ai(arr)
+                self.detected_plane = orientation
+                self.main_plane = orientation
+                print(f"[Info] AI Detection: {orientation} ({confidence:.1f}% confidence, {method})")
+            except Exception as ai_error:
+                print(f"[Info] AI detection failed ({ai_error}), falling back to DICOM metadata...")
+                self.detected_plane = detect_main_plane_dicom(files[0])
+                self.main_plane = self.detected_plane
+                confidence = 0.0
+                method = "DICOM_Metadata"
+                print(f"[Info] DICOM Metadata Detection: {self.detected_plane}")
+            
             self.temp_nifti = os.path.join(folder_path, "converted_for_seg.nii.gz")
             sitk.WriteImage(image, self.temp_nifti)
             
@@ -68,7 +82,9 @@ class DataLoader:
                 'shape': arr.shape,
                 'main_plane': self.main_plane,
                 'body_part': self.body_part_examined,
-                'temp_nifti': self.temp_nifti
+                'temp_nifti': self.temp_nifti,
+                'ai_method': method,
+                'confidence': confidence
             }
             
             return True, None, arr, metadata

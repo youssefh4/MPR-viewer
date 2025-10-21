@@ -274,7 +274,7 @@ class DICOM_MPR_Viewer(QWidget):
         seg_group.addWidget(organ_label)
         
         self.organ_dropdown = QComboBox()
-        self.organ_dropdown.addItems(["None", "Lungs", "Heart", "Brain", "Kidneys", "Liver", "Spleen", "Spine"])
+        self.organ_dropdown.addItems(["None", "Lungs", "Heart", "Brain", "Kidneys", "Liver", "Spleen", "Spine", "Ribcage"])
         self.organ_dropdown.currentIndexChanged.connect(self.prepare_masks)
         # Ensure proper focus and event handling
         self.organ_dropdown.setFocusPolicy(Qt.StrongFocus)
@@ -574,14 +574,23 @@ class DICOM_MPR_Viewer(QWidget):
         self.body_part_examined = metadata['body_part']
         
         # Update UI
-        self.info_label.setText(f"Loaded {metadata['num_slices']} DICOM slices. Shape: {metadata['shape']}  Main: {self.main_plane}")
+        ai_method = metadata.get('ai_method', 'DICOM_Metadata')
+        confidence = metadata.get('confidence', 0.0)
+        if confidence > 0:
+            self.info_label.setText(f"Loaded {metadata['num_slices']} DICOM slices. Shape: {metadata['shape']}  Main: {self.main_plane} ({ai_method} AI, {confidence:.1f}% confidence)")
+        else:
+            self.info_label.setText(f"Loaded {metadata['num_slices']} DICOM slices. Shape: {metadata['shape']}  Main: {self.main_plane} ({ai_method})")
         self.bodypart_label.setText(f"Dicom Type: {self.body_part_examined}")
         
         # Reset masks and organ dropdown
         self.data_loader.reset_masks()
         self.organ_dropdown.clear()
-        self.organ_dropdown.addItems(["None", "Lungs", "Heart", "Brain", "Kidneys", "Liver", "Spleen", "Spine"])
+        self.organ_dropdown.addItems(["None", "Lungs", "Heart", "Brain", "Kidneys", "Liver", "Spleen", "Spine", "Ribcage"])
         self.organ_dropdown.setCurrentIndex(0)
+        
+        # Show success message with AI detection info
+        QMessageBox.information(self, "DICOM Loaded Successfully", 
+                                f"DICOM series loaded successfully!\nSlices: {metadata['num_slices']}\nShape: {metadata['shape']}\nOrientation: {self.main_plane}\nDetection Method: {ai_method}\nConfidence: {confidence:.1f}%" if confidence > 0 else f"DICOM series loaded successfully!\nSlices: {metadata['num_slices']}\nShape: {metadata['shape']}\nOrientation: {self.main_plane}\nDetection Method: {ai_method}")
         
         self.setup_views()
 
@@ -621,7 +630,7 @@ class DICOM_MPR_Viewer(QWidget):
         # Reset masks and organ dropdown
         self.data_loader.reset_masks()
         self.organ_dropdown.clear()
-        self.organ_dropdown.addItems(["None", "Lungs", "Heart", "Brain", "Kidneys", "Liver", "Spleen", "Spine"])
+        self.organ_dropdown.addItems(["None", "Lungs", "Heart", "Brain", "Kidneys", "Liver", "Spleen", "Spine", "Ribcage"])
         self.organ_dropdown.setCurrentIndex(0)
         
         self.setup_views()
@@ -704,7 +713,7 @@ class DICOM_MPR_Viewer(QWidget):
 
         QMessageBox.information(self, "Segmentation", "Running TotalSegmentator. This may take several minutes...")
         
-        success, error_msg, main_organ = self.segmentation_manager.run_totalsegmentator(self.data_loader.temp_nifti)
+        success, error_msg, top_organs = self.segmentation_manager.run_totalsegmentator(self.data_loader.temp_nifti)
         
         if not success:
             QMessageBox.critical(self, "Segmentation Error", error_msg)
@@ -713,11 +722,21 @@ class DICOM_MPR_Viewer(QWidget):
         # Update UI
         self.data_loader.using_external_masks = False
         self.organ_dropdown.clear()
-        self.organ_dropdown.addItems(["None", "Lungs", "Heart", "Brain", "Kidneys", "Liver", "Spleen", "Spine"])
+        self.organ_dropdown.addItems(["None", "Lungs", "Heart", "Brain", "Kidneys", "Liver", "Spleen", "Spine", "Ribcage"])
         self.organ_dropdown.setCurrentIndex(0)
-        self.bodypart_label.setText(
-            f"Dicom Type: {self.body_part_examined}\nPrimary Organ (Segmentation): {main_organ}")
-        QMessageBox.information(self, "Done", f"Segmentation complete.\nPrimary Organ: {main_organ}")
+        
+        # Display top 3 organs
+        if isinstance(top_organs, list) and len(top_organs) > 0:
+            organs_text = " → ".join(top_organs[:3])  # Show top 3 with arrows
+            self.bodypart_label.setText(
+                f"Dicom Type: {self.body_part_examined}\nTop Organs: {organs_text}")
+            QMessageBox.information(self, "Segmentation Complete", 
+                f"Segmentation complete!\n\nTop 3 organs detected:\n1. {top_organs[0]}\n2. {top_organs[1] if len(top_organs) > 1 else 'N/A'}\n3. {top_organs[2] if len(top_organs) > 2 else 'N/A'}")
+        else:
+            self.bodypart_label.setText(
+                f"Dicom Type: {self.body_part_examined}\nPrimary Organ: {top_organs}")
+            QMessageBox.information(self, "Done", f"Segmentation complete.\nPrimary Organ: {top_organs}")
+        
         self.prepare_masks()
 
     def prepare_masks(self):

@@ -28,7 +28,7 @@ class SegmentationManager:
             input_path: Path to the input NIfTI file
             
         Returns:
-            tuple: (success, error_message, main_organ)
+            tuple: (success, error_message, top_3_organs)
         """
         if not os.path.exists(input_path):
             return False, "Input file does not exist.", None
@@ -60,16 +60,16 @@ class SegmentationManager:
             return False, str(e), None
 
     def detect_main_organ(self, output_dir_abs):
-        """Detect the main organ from TotalSegmentator output by volume."""
+        """Detect the top 3 organs from TotalSegmentator output by volume."""
         # Check if output directory exists and has files
         if not os.path.exists(output_dir_abs):
             print(f"[Warning] Output directory '{output_dir_abs}' does not exist")
-            return "Unknown"
+            return ["Unknown"]
 
         mask_files = [f for f in os.listdir(output_dir_abs) if f.endswith('.nii.gz')]
         if not mask_files:
             print(f"[Warning] No mask files found in '{output_dir_abs}'")
-            return "Unknown"
+            return ["Unknown"]
 
         print(f"[Info] Found {len(mask_files)} mask files in output directory")
 
@@ -90,12 +90,16 @@ class SegmentationManager:
             organ_volumes[organ] = vol_count
 
         print(f"[Info] Organ volumes: {organ_volumes}")
-        main_organ = max(organ_volumes, key=organ_volumes.get)
-        volume = organ_volumes[main_organ]
-        if volume > 0:
-            return main_organ
-        else:
-            return "Unknown"
+        
+        # Sort organs by volume (descending) and get top 3
+        sorted_organs = sorted(organ_volumes.items(), key=lambda x: x[1], reverse=True)
+        top_3_organs = [organ for organ, volume in sorted_organs[:3] if volume > 0]
+        
+        if not top_3_organs:
+            return ["Unknown"]
+        
+        print(f"[Info] Top 3 organs detected: {top_3_organs}")
+        return top_3_organs
 
     def prepare_masks(self, volume, organ, using_external_masks=False, external_color_masks=None):
         """
