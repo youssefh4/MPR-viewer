@@ -736,8 +736,7 @@ class DICOM_MPR_Viewer(QWidget):
     def setup_views(self):
         """
         Set up the 4-panel MPR view grid.
-        Creates Axial, Sagittal, Coronal views, plus either Segmentation or Oblique
-        view based on user selection (fourth_view_mode).
+        Creates views based on detected orientation, with the main plane appearing first.
         Applies automatic reorientation based on detected main plane.
         """
         self.clear_views()
@@ -745,32 +744,39 @@ class DICOM_MPR_Viewer(QWidget):
             return
         shape = self.volume.shape
 
-        # Reorient volume based on detected main plane
-        if hasattr(self.data_loader, 'detected_plane') and self.data_loader.detected_plane != "Axial":
-            if self.data_loader.detected_plane == "Coronal":
-                print(f"[Info] Detected as Coronal orientation - adjusting view functions")
-                print(f"  Shape: {self.original_volume.shape}")
-                # Don't transpose data, just adjust view functions
-                get_ax = lambda k: self.volume[:, int(np.clip(k, 0, shape[1] - 1)), :]  # Coronal slices
-                get_co = lambda j: self.volume[int(np.clip(j, 0, shape[0] - 1)), :, :]  # Axial slices  
-                get_sa = lambda i: self.volume[:, :, int(np.clip(i, 0, shape[2] - 1))]   # Sagittal slices
-            elif self.data_loader.detected_plane == "Sagittal":
-                print(f"[Info] Detected as Sagittal orientation - adjusting view functions")
-                print(f"  Shape: {self.original_volume.shape}")
-                # Don't transpose data, just adjust view functions
-                get_ax = lambda k: self.volume[:, :, int(np.clip(k, 0, shape[2] - 1))]   # Sagittal slices
-                get_co = lambda j: self.volume[:, int(np.clip(j, 0, shape[1] - 1)), :]  # Coronal slices
-                get_sa = lambda i: self.volume[int(np.clip(i, 0, shape[0] - 1)), :, :]  # Axial slices
-            else:
-                # Default axial orientation
-                get_ax = lambda k: self.volume[int(np.clip(k, 0, shape[0] - 1)), :, :]
-                get_co = lambda j: self.volume[:, int(np.clip(j, 0, shape[1] - 1)), :]
-                get_sa = lambda i: self.volume[:, :, int(np.clip(i, 0, shape[2] - 1))]
+        # Determine the detected plane
+        detected_plane = getattr(self.data_loader, 'detected_plane', 'Axial')
+        print(f"[Info] Setting up views for detected orientation: {detected_plane}")
+
+        # Define slice extraction functions based on detected orientation
+        if detected_plane == "Coronal":
+            print(f"[Info] Detected as Coronal orientation - adjusting view functions")
+            print(f"  Shape: {self.original_volume.shape}")
+            # Coronal is the main plane, so it gets the primary view function
+            get_main = lambda k: self.volume[:, int(np.clip(k, 0, shape[1] - 1)), :]  # Coronal slices
+            get_secondary1 = lambda j: self.volume[int(np.clip(j, 0, shape[0] - 1)), :, :]  # Axial slices  
+            get_secondary2 = lambda i: self.volume[:, :, int(np.clip(i, 0, shape[2] - 1))]   # Sagittal slices
+            main_label = "Coronal"
+            secondary1_label = "Axial"
+            secondary2_label = "Sagittal"
+        elif detected_plane == "Sagittal":
+            print(f"[Info] Detected as Sagittal orientation - adjusting view functions")
+            print(f"  Shape: {self.original_volume.shape}")
+            # Sagittal is the main plane, so it gets the primary view function
+            get_main = lambda k: self.volume[:, :, int(np.clip(k, 0, shape[2] - 1))]   # Sagittal slices
+            get_secondary1 = lambda j: self.volume[:, int(np.clip(j, 0, shape[1] - 1)), :]  # Coronal slices
+            get_secondary2 = lambda i: self.volume[int(np.clip(i, 0, shape[0] - 1)), :, :]  # Axial slices
+            main_label = "Sagittal"
+            secondary1_label = "Coronal"
+            secondary2_label = "Axial"
         else:
             # Default axial orientation
-            get_ax = lambda k: self.volume[int(np.clip(k, 0, shape[0] - 1)), :, :]
-            get_co = lambda j: self.volume[:, int(np.clip(j, 0, shape[1] - 1)), :]
-            get_sa = lambda i: self.volume[:, :, int(np.clip(i, 0, shape[2] - 1))]
+            get_main = lambda k: self.volume[int(np.clip(k, 0, shape[0] - 1)), :, :]
+            get_secondary1 = lambda j: self.volume[:, int(np.clip(j, 0, shape[1] - 1)), :]
+            get_secondary2 = lambda i: self.volume[:, :, int(np.clip(i, 0, shape[2] - 1))]
+            main_label = "Axial"
+            secondary1_label = "Coronal"
+            secondary2_label = "Sagittal"
 
         def get_oblique(k):
             return get_oblique_slice(
@@ -792,10 +798,11 @@ class DICOM_MPR_Viewer(QWidget):
                 return None
             return self.segmentation_manager.get_color_mask_slice(k, self.segmentation_plane, self.volume.shape)
 
-        axial = SliceView("Axial", get_ax)
-        sagittal = SliceView("Sagittal", get_sa)
-        coronal = SliceView("Coronal", get_co)
-        seg_view = SliceView("Segmentation", get_ax, seg_mask_func, seg_color_func)
+        # Create views with labels reflecting the detected orientation
+        main_view = SliceView(main_label, get_main)
+        secondary1_view = SliceView(secondary1_label, get_secondary1)
+        secondary2_view = SliceView(secondary2_label, get_secondary2)
+        seg_view = SliceView("Segmentation", get_main, seg_mask_func, seg_color_func)
 
         # Create oblique view
         if self.oblique_reference_plane == "Axial":
@@ -813,17 +820,18 @@ class DICOM_MPR_Viewer(QWidget):
         oblique_view.slider.setValue(self.slice_indices["Oblique"])
         oblique_view.slider.valueChanged.connect(self.oblique_slider_changed)
 
-        self.views_dict = {"Axial": axial, "Sagittal": sagittal, "Coronal": coronal}
+        # Update views_dict to reflect the detected orientation
+        self.views_dict = {main_label: main_view, secondary1_label: secondary1_view, secondary2_label: secondary2_view}
         self.seg_view = seg_view
         self.oblique_view = oblique_view
 
         # Click-to-sync hookup
-        axial.canvas_clicked.connect(self.on_view_click)
-        sagittal.canvas_clicked.connect(self.on_view_click)
-        coronal.canvas_clicked.connect(self.on_view_click)
+        main_view.canvas_clicked.connect(self.on_view_click)
+        secondary1_view.canvas_clicked.connect(self.on_view_click)
+        secondary2_view.canvas_clicked.connect(self.on_view_click)
 
-        # Always show first 3 views
-        self.views = [axial, sagittal, coronal]
+        # Order views with main plane first
+        self.views = [main_view, secondary1_view, secondary2_view]
 
         # Add 4th view based on selection
         if self.fourth_view_mode == "Oblique":
@@ -838,80 +846,57 @@ class DICOM_MPR_Viewer(QWidget):
             fourth_view = seg_view
 
         # Set slider maximums and slice indices based on detected orientation
-        if hasattr(self.data_loader, 'detected_plane') and self.data_loader.detected_plane != "Axial":
-            if self.data_loader.detected_plane == "Coronal":
-                # For Coronal data: Axial=height, Coronal=depth, Sagittal=width
-                axial_max = shape[1] - 1
-                coronal_max = shape[0] - 1
-                sagittal_max = shape[2] - 1
-                axial_default = shape[1] // 2
-                coronal_default = shape[0] // 2
-                sagittal_default = shape[2] // 2
-            elif self.data_loader.detected_plane == "Sagittal":
-                # For Sagittal data: Axial=width, Coronal=height, Sagittal=depth
-                axial_max = shape[2] - 1
-                coronal_max = shape[1] - 1
-                sagittal_max = shape[0] - 1
-                axial_default = shape[2] // 2
-                coronal_default = shape[1] // 2
-                sagittal_default = shape[0] // 2
-            else:
-                # Default axial orientation
-                axial_max = shape[0] - 1
-                coronal_max = shape[1] - 1
-                sagittal_max = shape[2] - 1
-                axial_default = shape[0] // 2
-                coronal_default = shape[1] // 2
-                sagittal_default = shape[2] // 2
+        if detected_plane == "Coronal":
+            # For Coronal data: main=height, secondary1=depth, secondary2=width
+            main_max = shape[1] - 1
+            secondary1_max = shape[0] - 1
+            secondary2_max = shape[2] - 1
+            main_default = shape[1] // 2
+            secondary1_default = shape[0] // 2
+            secondary2_default = shape[2] // 2
+        elif detected_plane == "Sagittal":
+            # For Sagittal data: main=depth, secondary1=height, secondary2=width
+            main_max = shape[2] - 1
+            secondary1_max = shape[1] - 1
+            secondary2_max = shape[0] - 1
+            main_default = shape[2] // 2
+            secondary1_default = shape[1] // 2
+            secondary2_default = shape[0] // 2
         else:
             # Default axial orientation
-            axial_max = shape[0] - 1
-            coronal_max = shape[1] - 1
-            sagittal_max = shape[2] - 1
-            axial_default = shape[0] // 2
-            coronal_default = shape[1] // 2
-            sagittal_default = shape[2] // 2
+            main_max = shape[0] - 1
+            secondary1_max = shape[1] - 1
+            secondary2_max = shape[2] - 1
+            main_default = shape[0] // 2
+            secondary1_default = shape[1] // 2
+            secondary2_default = shape[2] // 2
 
         # Set slider maximums first
-        axial.slider.setMaximum(axial_max)
-        coronal.slider.setMaximum(coronal_max)
-        sagittal.slider.setMaximum(sagittal_max)
+        main_view.slider.setMaximum(main_max)
+        secondary1_view.slider.setMaximum(secondary1_max)
+        secondary2_view.slider.setMaximum(secondary2_max)
 
         # Ensure slice indices are within bounds after reorientation
         self.slice_indices = {
-            "Axial": max(0, min(self.slice_indices.get("Axial", axial_default), axial_max)),
-            "Coronal": max(0, min(self.slice_indices.get("Coronal", coronal_default), coronal_max)),
-            "Sagittal": max(0, min(self.slice_indices.get("Sagittal", sagittal_default), sagittal_max)),
-            "Oblique": max(0, min(self.slice_indices.get("Oblique", axial_default), axial_max)),
+            main_label: main_default,
+            secondary1_label: secondary1_default,
+            secondary2_label: secondary2_default,
+            "Oblique": self.slice_indices.get("Oblique", 0)
         }
 
-        axial.slider.setValue(self.slice_indices["Axial"])
-        coronal.slider.setValue(self.slice_indices["Coronal"])
-        sagittal.slider.setValue(self.slice_indices["Sagittal"])
-        axial.slider.valueChanged.connect(lambda v: self.main_view_slider_changed("Axial", v))
-        coronal.slider.valueChanged.connect(lambda v: self.main_view_slider_changed("Coronal", v))
-        sagittal.slider.valueChanged.connect(lambda v: self.main_view_slider_changed("Sagittal", v))
+        # Set slider values and connect signals
+        main_view.slider.setValue(self.slice_indices[main_label])
+        secondary1_view.slider.setValue(self.slice_indices[secondary1_label])
+        secondary2_view.slider.setValue(self.slice_indices[secondary2_label])
+        main_view.slider.valueChanged.connect(lambda v: self.main_view_slider_changed(main_label, v))
+        secondary1_view.slider.valueChanged.connect(lambda v: self.main_view_slider_changed(secondary1_label, v))
+        secondary2_view.slider.valueChanged.connect(lambda v: self.main_view_slider_changed(secondary2_label, v))
         seg_view.slider.valueChanged.connect(self.seg_view_slider_changed)
 
-        # Standard 2x2 grid layout
-        self.grid.addWidget(axial, 0, 0)
-        self.grid.addWidget(sagittal, 0, 1)
-        self.grid.addWidget(coronal, 1, 0)
-        self.grid.addWidget(fourth_view, 1, 1)
-
-        # Set equal stretching for all rows and columns
-        for i in range(2):
-            self.grid.setRowStretch(i, 1)
-            self.grid.setColumnStretch(i, 1)
-
-        for view in self.views:
-            if hasattr(view, 'set_roi_zoom'):
-                view.set_roi_zoom(self.roi_zoom_on)
-
-        # Standard 2x2 grid layout
-        self.grid.addWidget(axial, 0, 0)
-        self.grid.addWidget(sagittal, 0, 1)
-        self.grid.addWidget(coronal, 1, 0)
+        # Standard 2x2 grid layout with main view in top-left
+        self.grid.addWidget(main_view, 0, 0)
+        self.grid.addWidget(secondary1_view, 0, 1)
+        self.grid.addWidget(secondary2_view, 1, 0)
         self.grid.addWidget(fourth_view, 1, 1)
 
         # Set equal stretching for all rows and columns
