@@ -12,6 +12,12 @@ def update_repo():
     try:
         print("Updating MPR Viewer repository...")
         
+        # Check if there are any changes to commit
+        result = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True)
+        if not result.stdout.strip():
+            print("No changes to commit. Repository is up to date.")
+            return
+        
         # Add all changes
         subprocess.run(["git", "add", "."], check=True)
         print("Files added to staging")
