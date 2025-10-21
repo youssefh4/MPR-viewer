@@ -62,6 +62,41 @@ See the MPR Viewer in action with these demonstration videos:
 [![MPR Viewer Demo - Oblique Slicing](assests/Screenshot%202025-10-21%20202331.png)](assests/Oblique.mp4)
 *Click to watch: Advanced oblique slicing with 3D rotation controls*
 
+## 🎬 Feature Demo Videos
+
+See the following demonstrations showcasing key features of Medical MPR Viewer:
+
+### 1. Oblique View
+
+
+https://github.com/user-attachments/assets/0e0c6c7a-71f0-41d1-afbe-4df1b094cc70
+
+
+<!-- Example: [Watch the Oblique View Demo](link-to-your-video) -->
+<!-- Or embed: <video src="link-to-your-video.mp4" controls></video> -->
+
+### 2. Playback Option
+
+
+
+https://github.com/user-attachments/assets/62d11e0b-2d01-43ec-87f4-fc25026748ae
+
+
+<!-- Example: [Watch the Playback Option Demo](link-to-your-video) -->
+<!-- Or embed: <video src="link-to-your-video.mp4" controls></video> -->
+
+### 3. ROI (Region of Interest) Option
+
+
+
+https://github.com/user-attachments/assets/b1055eac-6ff2-4055-ae3e-e193bc16b96b
+
+
+<!-- Place your ROI option demo video here -->
+<!-- Example: [Watch the ROI Option Demo](link-to-your-video) -->
+<!-- Or embed: <video src="link-to-your-video.mp4" controls></video> -->
+
+
 ## 📋 Requirements
 
 ### System Requirements
