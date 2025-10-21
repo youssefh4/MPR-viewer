@@ -53,18 +53,17 @@
 
 #### Appearance Modes
 
-**Dark Mode**
-![Medical MPR Viewer - Dark Mode]
-*Dark mode example: multi-planar views with sidebar in dark theme*
+<div align="center">
 
-<img width="1920" height="1020" alt="Screenshot 2025-10-21 201045" src="https://github.com/user-attachments/assets/daffd774-53aa-4484-bfab-0d9f2523bd0a" />
+**Dark Mode**
+<img width="800" alt="Medical MPR Viewer - Dark Mode" src="https://github.com/user-attachments/assets/daffd774-53aa-4484-bfab-0d9f2523bd0a" />
+*Multi-planar views with sidebar in dark theme*
 
 **Light Mode**
+<img width="800" alt="Medical MPR Viewer - Light Mode" src="https://github.com/user-attachments/assets/d6e38f6c-cb9d-4c34-9273-5af791d99ed4" />
+*Multi-planar views with sidebar in light theme*
 
-![Medical MPR Viewer - Light Mode]
-*Light mode example: multi-planar views with sidebar in light theme*
-
-<img width="1920" height="1020" alt="Screenshot 2025-10-21 202331" src="https://github.com/user-attachments/assets/d6e38f6c-cb9d-4c34-9273-5af791d99ed4" />
+</div>
 
 
 ## 🎬 Feature Demo Videos
