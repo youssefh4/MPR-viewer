@@ -244,28 +244,21 @@ python run_viewer.py
 
 ## 🎓 Educational Use
 
-This software is specifically designed for educational and research purposes in medical imaging. It provides an excellent platform for:
+This software is designed for educational and research purposes in medical imaging.
 
-### Learning Objectives
-- **Medical Image Processing** - Understanding DICOM and NIfTI formats
-- **Multi-Planar Reconstruction** - Learning anatomical plane visualization
-- **AI in Medical Imaging** - Exploring orientation detection and organ segmentation
-- **Medical Visualization** - Hands-on experience with medical image viewers
-- **Research Applications** - Tool for academic research in medical imaging
+### What You Can Do
+- **Learn** medical image processing and visualization
+- **Teach** medical imaging concepts in classrooms
+- **Research** academic projects in medical imaging
+- **Practice** with DICOM and NIfTI files
+- **Study** AI applications in medical imaging
 
-### Educational Features
-- **Interactive Learning** - Hands-on exploration of medical images
-- **AI Demonstration** - Real-world AI applications in medical imaging
-- **Comprehensive Documentation** - Detailed explanations of medical imaging concepts
-- **Open Source** - Full access to source code for learning purposes
+### What You Cannot Do
+- Use for clinical diagnosis or medical treatment
+- Use commercially without permission
+- Redistribute for commercial gain
 
-### Academic Use Cases
-- **Medical School Curriculum** - Teaching medical imaging concepts
-- **Biomedical Engineering** - Image processing and visualization courses
-- **Research Projects** - Academic research in medical imaging
-- **Student Assignments** - Practical exercises in medical image analysis
-
-**Note**: This software is NOT intended for clinical use or commercial applications without proper licensing.
+**Note**: This software is for learning only, not for clinical use.
 
 ## 📝 License
 
