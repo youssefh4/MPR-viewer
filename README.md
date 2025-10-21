@@ -41,6 +41,18 @@
 - **Responsive Design** - Adapts to different screen sizes
 - **Intuitive Controls** - Easy-to-use medical imaging tools
 
+#### Appearance Modes
+
+**Dark Mode**
+
+![Medical MPR Viewer - Dark Mode](image1)
+*Dark mode example: multi-planar views with sidebar in dark theme*
+
+**Light Mode**
+
+![Medical MPR Viewer - Light Mode](image2)
+*Light mode example: multi-planar views with sidebar in light theme*
+
 ## 📋 Requirements
 
 ### System Requirements
@@ -208,6 +220,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Made with ❤️ for the medical imaging community**
 
-[⭐ Star this repo](https://github.com/youssefh4/MPR-viewer) • [🐛 Report Bug](https://github.com/youssefh4/MPR-viewer/issues) • [💡 Request Feature](https://github.com/youssefh4/MPR-viewer/issues)
+[⭐ Star this repo](https://github.com/youssefh4/MPR-viewer) • [🐛 Report Bug](https://github.com/youssefh4/MPR-viewer/issues) • [💡 Request Feature](https://github.com/youssefh4/MPR-viewer/i[...]
 
 </div>
