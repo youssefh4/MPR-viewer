@@ -4,10 +4,10 @@
 
 ![Python](https://img.shields.io/badge/Python-3.7+-blue.svg)
 ![PyQt5](https://img.shields.io/badge/PyQt5-GUI-green.svg)
-![License](https://img.shields.io/badge/License-MIT-yellow.svg)
+![License](https://img.shields.io/badge/License-Educational-orange.svg)
 ![Status](https://img.shields.io/badge/Status-Stable-brightgreen.svg)
 
-**A comprehensive medical image viewer with advanced visualization capabilities for DICOM and NIfTI files**
+**A comprehensive medical image viewer with advanced visualization capabilities for DICOM and NIfTI files - Designed for Educational and Research Purposes**
 
 [Features](#features) • [Installation](#installation) • [Usage](#usage) • [Documentation](#documentation) • [Contributing](#contributing)
 
@@ -242,9 +242,36 @@ pip install -r requirements.txt
 python run_viewer.py
 ```
 
+## 🎓 Educational Use
+
+This software is specifically designed for educational and research purposes in medical imaging. It provides an excellent platform for:
+
+### Learning Objectives
+- **Medical Image Processing** - Understanding DICOM and NIfTI formats
+- **Multi-Planar Reconstruction** - Learning anatomical plane visualization
+- **AI in Medical Imaging** - Exploring orientation detection and organ segmentation
+- **Medical Visualization** - Hands-on experience with medical image viewers
+- **Research Applications** - Tool for academic research in medical imaging
+
+### Educational Features
+- **Interactive Learning** - Hands-on exploration of medical images
+- **AI Demonstration** - Real-world AI applications in medical imaging
+- **Comprehensive Documentation** - Detailed explanations of medical imaging concepts
+- **Open Source** - Full access to source code for learning purposes
+
+### Academic Use Cases
+- **Medical School Curriculum** - Teaching medical imaging concepts
+- **Biomedical Engineering** - Image processing and visualization courses
+- **Research Projects** - Academic research in medical imaging
+- **Student Assignments** - Practical exercises in medical image analysis
+
+**Note**: This software is NOT intended for clinical use or commercial applications without proper licensing.
+
 ## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the Educational License - see the [LICENSE](LICENSE) file for details.
+
+**Educational Use Only**: This software is intended for educational and research purposes. Commercial use requires separate licensing.
 
 ## 🙏 Acknowledgments
 

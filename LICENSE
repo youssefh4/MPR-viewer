@@ -1,0 +1,66 @@
+Educational License for Medical MPR Viewer
+
+Copyright (c) 2025 Medical MPR Viewer Project
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to use,
+copy, modify, and distribute the Software for educational purposes only,
+subject to the following conditions:
+
+EDUCATIONAL USE ONLY:
+1. The Software may be used for educational purposes, including but not limited to:
+   - Academic research and studies
+   - Teaching medical imaging concepts
+   - Learning medical image processing
+   - Educational demonstrations and presentations
+   - Student projects and assignments
+   - Research in medical imaging and AI
+
+RESTRICTIONS:
+2. The Software may NOT be used for:
+   - Commercial purposes without explicit written permission
+   - Clinical diagnosis or treatment decisions
+   - Any medical or healthcare applications requiring regulatory approval
+   - Redistribution for commercial gain
+   - Integration into commercial medical software products
+
+ATTRIBUTION REQUIREMENTS:
+3. Any use of the Software must include:
+   - Clear attribution to the original authors
+   - Reference to this Educational License
+   - Acknowledgment of the educational nature of the use
+
+DISCLAIMER:
+4. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+   SOFTWARE.
+
+MEDICAL DISCLAIMER:
+5. This software is intended for educational and research purposes only. It is
+   NOT intended for clinical use, diagnosis, or treatment. Users are responsible
+   for ensuring appropriate use and compliance with applicable regulations.
+
+THIRD-PARTY COMPONENTS:
+6. This software includes third-party components with their own licenses:
+   - TotalSegmentator (Apache License 2.0)
+   - PyQt5 (GPL v3 or Commercial License)
+   - PyTorch (BSD License)
+   - SimpleITK (Apache License 2.0)
+   - Nibabel (MIT License)
+
+   Users must comply with the respective licenses of these components.
+
+COMMERCIAL USE:
+7. For commercial use, licensing, or integration into commercial products,
+   please contact the authors for appropriate licensing terms.
+
+CONTACT:
+For questions about this license or commercial licensing, please contact:
+- GitHub Issues: https://github.com/youssefh4/MPR-viewer/issues
+- Email: [Your contact email]
+
+This Educational License is effective as of the date of first publication.
