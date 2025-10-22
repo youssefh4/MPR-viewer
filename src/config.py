@@ -24,7 +24,10 @@ OUTLINE_COLORS = {
     "duodenum": "olive",
     "small bowel": "darkcyan",
     "colon": "darkred",
-    "urinary bladder": "deepskyblue"
+    "urinary bladder": "deepskyblue",
+    "cv_heart": "crimson",
+    "cv_arteries": "tomato",
+    "cv_veins": "royalblue"
 }
 
 # Organ groups for TotalSegmentator - used in both detection and masking
@@ -54,11 +57,27 @@ ORGAN_GROUPS_SIMPLE = {
     "Duodenum": ["duodenum"],
     "Small Bowel": ["small_bowel"],
     "Colon": ["colon"],
-    "Urinary Bladder": ["urinary_bladder"]
+    "Urinary Bladder": ["urinary_bladder"],
+    "Cardiovascular": [
+        "heart",
+        "aorta",
+        "pulmonary_artery",
+        "pulmonary_vein",
+        "vena_cava_inferior",
+        "vena_cava_superior",
+        "portal_vein"
+    ]
 }
 
 # Heart organ with color separation (for prepare_masks)
 HEART_COLOR_GROUPS = {"main": ["heart"], "vessels": ["aorta", "pulmonary_artery", "pulmonary_vein"]}
+
+# Grouped labels for Cardiovascular (multi-color)
+CV_COLOR_GROUPS = {
+    "heart": ["heart"],
+    "arteries": ["aorta", "pulmonary_artery"],
+    "veins": ["pulmonary_vein", "vena_cava_inferior", "vena_cava_superior", "portal_vein"]
+}
 
 # Organ keywords for external mask detection
 ORGAN_KEYWORDS = {
@@ -81,7 +100,8 @@ ORGAN_KEYWORDS = {
     "Duodenum": ["duodenum"],
     "Small Bowel": ["small_bowel", "small bowel"],
     "Colon": ["colon"],
-    "Urinary Bladder": ["urinary_bladder", "urinary bladder", "bladder"]
+    "Urinary Bladder": ["urinary_bladder", "urinary bladder", "bladder"],
+    "Cardiovascular": ["heart", "aorta", "artery", "vein", "cava", "portal"]
 }
 
 # Default settings

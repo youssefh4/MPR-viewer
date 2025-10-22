@@ -148,6 +148,18 @@ class SegmentationManager:
                             k = "heart_main" if key == "main" else "heart_vessels"
                             self.color_masks.setdefault(k, np.zeros_like(volume, dtype=np.uint8))
                             self.color_masks[k] |= m
+            elif organ == "Cardiovascular":
+                # Import here to avoid circular at module load
+                from config import CV_COLOR_GROUPS
+                for subgroup, names in CV_COLOR_GROUPS.items():
+                    for name in names:
+                        path = os.path.join(output_dir_abs, f"{name}.nii.gz")
+                        if os.path.exists(path):
+                            m = match_shape(nib.load(path).get_fdata() > 0, volume)
+                            self.mask_volume |= m
+                            key = f"cv_{subgroup}"
+                            self.color_masks.setdefault(key, np.zeros_like(volume, dtype=np.uint8))
+                            self.color_masks[key] |= m
             else:
                 for name in ORGAN_GROUPS_SIMPLE[organ]:
                     path = os.path.join(output_dir_abs, f"{name}.nii.gz")
