@@ -18,7 +18,13 @@ OUTLINE_COLORS = {
     "adrenal": "darkblue",
     "gallbladder": "gold",
     "pancreas": "darkorange",
-    "prostate": "darkmagenta"
+    "prostate": "darkmagenta",
+    "esophagus": "teal",
+    "stomach": "salmon",
+    "duodenum": "olive",
+    "small bowel": "darkcyan",
+    "colon": "darkred",
+    "urinary bladder": "deepskyblue"
 }
 
 # Organ groups for TotalSegmentator - used in both detection and masking
@@ -42,7 +48,13 @@ ORGAN_GROUPS_SIMPLE = {
     "Adrenal": ["adrenal_gland_left", "adrenal_gland_right"],
     "Gallbladder": ["gallbladder"],
     "Pancreas": ["pancreas"],
-    "Prostate": ["prostate"]
+    "Prostate": ["prostate"],
+    "Esophagus": ["esophagus"],
+    "Stomach": ["stomach"],
+    "Duodenum": ["duodenum"],
+    "Small Bowel": ["small_bowel"],
+    "Colon": ["colon"],
+    "Urinary Bladder": ["urinary_bladder"]
 }
 
 # Heart organ with color separation (for prepare_masks)
@@ -63,7 +75,13 @@ ORGAN_KEYWORDS = {
     "Adrenal": ["adrenal"],
     "Gallbladder": ["gallbladder"],
     "Pancreas": ["pancreas"],
-    "Prostate": ["prostate"]
+    "Prostate": ["prostate"],
+    "Esophagus": ["esophagus"],
+    "Stomach": ["stomach"],
+    "Duodenum": ["duodenum"],
+    "Small Bowel": ["small_bowel", "small bowel"],
+    "Colon": ["colon"],
+    "Urinary Bladder": ["urinary_bladder", "urinary bladder", "bladder"]
 }
 
 # Default settings

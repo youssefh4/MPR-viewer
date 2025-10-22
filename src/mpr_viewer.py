@@ -274,7 +274,7 @@ class DICOM_MPR_Viewer(QWidget):
         seg_group.addWidget(organ_label)
         
         self.organ_dropdown = QComboBox()
-        self.organ_dropdown.addItems(["None", "Lungs", "Heart", "Brain", "Kidneys", "Liver", "Spleen", "Spine", "Ribcage", "Thyroid", "Trachea", "Adrenal", "Gallbladder", "Pancreas", "Prostate"])
+        self.organ_dropdown.addItems(["None", "Lungs", "Heart", "Brain", "Kidneys", "Liver", "Spleen", "Spine", "Ribcage", "Thyroid", "Trachea", "Adrenal", "Gallbladder", "Pancreas", "Prostate", "Esophagus", "Stomach", "Duodenum", "Small Bowel", "Colon", "Urinary Bladder"])
         self.organ_dropdown.currentIndexChanged.connect(self.prepare_masks)
         # Ensure proper focus and event handling
         self.organ_dropdown.setFocusPolicy(Qt.StrongFocus)
@@ -585,7 +585,7 @@ class DICOM_MPR_Viewer(QWidget):
         # Reset masks and organ dropdown
         self.data_loader.reset_masks()
         self.organ_dropdown.clear()
-        self.organ_dropdown.addItems(["None", "Lungs", "Heart", "Brain", "Kidneys", "Liver", "Spleen", "Spine", "Ribcage", "Thyroid", "Trachea", "Adrenal", "Gallbladder", "Pancreas", "Prostate"])
+        self.organ_dropdown.addItems(["None", "Lungs", "Heart", "Brain", "Kidneys", "Liver", "Spleen", "Spine", "Ribcage", "Thyroid", "Trachea", "Adrenal", "Gallbladder", "Pancreas", "Prostate", "Esophagus", "Stomach", "Duodenum", "Small Bowel", "Colon", "Urinary Bladder"])
         self.organ_dropdown.setCurrentIndex(0)
         
         # Show success message with AI detection info
@@ -630,7 +630,7 @@ class DICOM_MPR_Viewer(QWidget):
         # Reset masks and organ dropdown
         self.data_loader.reset_masks()
         self.organ_dropdown.clear()
-        self.organ_dropdown.addItems(["None", "Lungs", "Heart", "Brain", "Kidneys", "Liver", "Spleen", "Spine", "Ribcage", "Thyroid", "Trachea", "Adrenal", "Gallbladder", "Pancreas", "Prostate"])
+        self.organ_dropdown.addItems(["None", "Lungs", "Heart", "Brain", "Kidneys", "Liver", "Spleen", "Spine", "Ribcage", "Thyroid", "Trachea", "Adrenal", "Gallbladder", "Pancreas", "Prostate", "Esophagus", "Stomach", "Duodenum", "Small Bowel", "Colon", "Urinary Bladder"])
         self.organ_dropdown.setCurrentIndex(0)
         
         self.setup_views()
@@ -722,7 +722,7 @@ class DICOM_MPR_Viewer(QWidget):
         # Update UI
         self.data_loader.using_external_masks = False
         self.organ_dropdown.clear()
-        self.organ_dropdown.addItems(["None", "Lungs", "Heart", "Brain", "Kidneys", "Liver", "Spleen", "Spine", "Ribcage", "Thyroid", "Trachea", "Adrenal", "Gallbladder", "Pancreas", "Prostate"])
+        self.organ_dropdown.addItems(["None", "Lungs", "Heart", "Brain", "Kidneys", "Liver", "Spleen", "Spine", "Ribcage", "Thyroid", "Trachea", "Adrenal", "Gallbladder", "Pancreas", "Prostate", "Esophagus", "Stomach", "Duodenum", "Small Bowel", "Colon", "Urinary Bladder"])
         self.organ_dropdown.setCurrentIndex(0)
         
         # Display top 3 organs
@@ -1894,24 +1894,40 @@ class DICOM_MPR_Viewer(QWidget):
                 QMessageBox.warning(self, "3D Visualization", "Volume must be 3D for surface visualization.")
                 return
             
-            # Get threshold from slider
-            threshold_percent = self.threshold_slider.value()
-            
-            # Use threshold and ensure data is properly scaled
-            volume_normalized = (self.volume - self.volume.min()) / (self.volume.max() - self.volume.min())
-            threshold = np.percentile(volume_normalized, threshold_percent)
-            mask_3d = volume_normalized > threshold
-            
+            # Determine the binary mask to render based on the selected organ/mask
+            selected_label = self.organ_dropdown.currentText() if hasattr(self, 'organ_dropdown') else None
+            mask_3d = None
+
+            # Prefer exact external mask when external masks are in use
+            if getattr(self.data_loader, 'using_external_masks', False) and \
+               getattr(self.data_loader, 'external_color_masks', None) is not None and \
+               selected_label in self.data_loader.external_color_masks:
+                mask_3d = self.data_loader.external_color_masks[selected_label] > 0
+            else:
+                # Ensure masks for the selected organ are prepared
+                if getattr(self, 'mask_volume', None) is None or selected_label is None:
+                    # Prepare masks for the current selection
+                    self.prepare_masks()
+                # mask_volume is the union for the selected organ (built by SegmentationManager)
+                mask_3d = (self.mask_volume > 0) if getattr(self, 'mask_volume', None) is not None else None
+
+            if mask_3d is None:
+                QMessageBox.warning(self, "3D Visualization", "No mask available for 3D rendering. Select an organ first or run segmentation.")
+                return
+
+            # Ensure boolean array
+            mask_3d = (mask_3d.astype(np.uint8) > 0)
+
             # Check if mask has any True values
             if not np.any(mask_3d):
-                QMessageBox.warning(self, "3D Visualization", f"No surface found with {threshold_percent}% threshold. Try adjusting the threshold.")
+                QMessageBox.warning(self, "3D Visualization", "Selected mask is empty. Try another organ or run segmentation.")
                 return
             
-            # Marching cubes with proper spacing
+            # Marching cubes on the binary mask (level 0.5)
             verts, faces, _, _ = measure.marching_cubes(mask_3d, level=0.5, spacing=(1.0, 1.0, 1.0))
             
             if len(verts) == 0 or len(faces) == 0:
-                QMessageBox.warning(self, "3D Visualization", "No surface geometry generated.")
+                QMessageBox.warning(self, "3D Visualization", "No surface geometry generated from the selected mask.")
                 return
             
             faces_flat = np.hstack([np.full((faces.shape[0], 1), 3), faces]).astype(np.int32)
@@ -1921,13 +1937,14 @@ class DICOM_MPR_Viewer(QWidget):
             plotter = pv.Plotter()
             
             # Get settings from checkboxes
-            smooth_shading = self.smooth_surface_cb.isChecked()
-            show_axes = self.show_axes_cb.isChecked()
+            smooth_shading = self.smooth_surface_cb.isChecked() if hasattr(self, 'smooth_surface_cb') else True
+            show_axes = self.show_axes_cb.isChecked() if hasattr(self, 'show_axes_cb') else True
             
-            plotter.add_mesh(surface, smooth_shading=smooth_shading, color='lightblue', opacity=0.8)
+            plotter.add_mesh(surface, smooth_shading=smooth_shading, color='lightblue', opacity=0.85)
             
             # Add helpful text
-            plotter.add_text("3D Surface Visualization\n\nMouse Controls:\n• Left Click + Drag: Rotate\n• Right Click + Drag: Pan\n• Scroll Wheel: Zoom In/Out\n• Middle Click + Drag: Zoom\n\nKeyboard:\n• 'r': Reset view\n• 'q': Quit", 
+            title_text = f"3D Surface: {selected_label}" if selected_label else "3D Surface"
+            plotter.add_text(title_text + "\n\nMouse Controls:\n• Left Click + Drag: Rotate\n• Right Click + Drag: Pan\n• Scroll Wheel: Zoom In/Out\n• Middle Click + Drag: Zoom\n\nKeyboard:\n• 'r': Reset view\n• 'q': Quit", 
                            position='upper_left', font_size=10)
             
             # Set up the plotter with better initial view
