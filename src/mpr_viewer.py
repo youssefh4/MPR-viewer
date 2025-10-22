@@ -274,7 +274,7 @@ class DICOM_MPR_Viewer(QWidget):
         seg_group.addWidget(organ_label)
         
         self.organ_dropdown = QComboBox()
-        self.organ_dropdown.addItems(["None", "Lungs", "Heart", "Brain", "Kidneys", "Liver", "Spleen", "Spine", "Ribcage"])
+        self.organ_dropdown.addItems(["None", "Lungs", "Heart", "Brain", "Kidneys", "Liver", "Spleen", "Spine", "Ribcage", "Thyroid", "Trachea", "Adrenal", "Gallbladder", "Pancreas", "Prostate"])
         self.organ_dropdown.currentIndexChanged.connect(self.prepare_masks)
         # Ensure proper focus and event handling
         self.organ_dropdown.setFocusPolicy(Qt.StrongFocus)
@@ -585,7 +585,7 @@ class DICOM_MPR_Viewer(QWidget):
         # Reset masks and organ dropdown
         self.data_loader.reset_masks()
         self.organ_dropdown.clear()
-        self.organ_dropdown.addItems(["None", "Lungs", "Heart", "Brain", "Kidneys", "Liver", "Spleen", "Spine", "Ribcage"])
+        self.organ_dropdown.addItems(["None", "Lungs", "Heart", "Brain", "Kidneys", "Liver", "Spleen", "Spine", "Ribcage", "Thyroid", "Trachea", "Adrenal", "Gallbladder", "Pancreas", "Prostate"])
         self.organ_dropdown.setCurrentIndex(0)
         
         # Show success message with AI detection info
@@ -630,7 +630,7 @@ class DICOM_MPR_Viewer(QWidget):
         # Reset masks and organ dropdown
         self.data_loader.reset_masks()
         self.organ_dropdown.clear()
-        self.organ_dropdown.addItems(["None", "Lungs", "Heart", "Brain", "Kidneys", "Liver", "Spleen", "Spine", "Ribcage"])
+        self.organ_dropdown.addItems(["None", "Lungs", "Heart", "Brain", "Kidneys", "Liver", "Spleen", "Spine", "Ribcage", "Thyroid", "Trachea", "Adrenal", "Gallbladder", "Pancreas", "Prostate"])
         self.organ_dropdown.setCurrentIndex(0)
         
         self.setup_views()
@@ -722,7 +722,7 @@ class DICOM_MPR_Viewer(QWidget):
         # Update UI
         self.data_loader.using_external_masks = False
         self.organ_dropdown.clear()
-        self.organ_dropdown.addItems(["None", "Lungs", "Heart", "Brain", "Kidneys", "Liver", "Spleen", "Spine", "Ribcage"])
+        self.organ_dropdown.addItems(["None", "Lungs", "Heart", "Brain", "Kidneys", "Liver", "Spleen", "Spine", "Ribcage", "Thyroid", "Trachea", "Adrenal", "Gallbladder", "Pancreas", "Prostate"])
         self.organ_dropdown.setCurrentIndex(0)
         
         # Display top 3 organs

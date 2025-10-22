@@ -12,7 +12,13 @@ OUTLINE_COLORS = {
     "liver": "orange",
     "spleen": "cyan",
     "spine": "yellow",
-    "ribcage": "brown"
+    "ribcage": "brown",
+    "thyroid": "pink",
+    "trachea": "lightgreen",
+    "adrenal": "darkblue",
+    "gallbladder": "gold",
+    "pancreas": "darkorange",
+    "prostate": "darkmagenta"
 }
 
 # Organ groups for TotalSegmentator - used in both detection and masking
@@ -30,7 +36,13 @@ ORGAN_GROUPS_SIMPLE = {
         "L1", "L2", "L3", "L4", "L5", "S1"
     ]] + ["sacrum"],
     "Ribcage": [f"rib_left_{i}" for i in range(1, 13)] + [f"rib_right_{i}" for i in range(1, 13)] + 
-              ["sternum", "costal_cartilages"]
+              ["sternum", "costal_cartilages"],
+    "Thyroid": ["thyroid_gland"],
+    "Trachea": ["trachea"],
+    "Adrenal": ["adrenal_gland_left", "adrenal_gland_right"],
+    "Gallbladder": ["gallbladder"],
+    "Pancreas": ["pancreas"],
+    "Prostate": ["prostate"]
 }
 
 # Heart organ with color separation (for prepare_masks)
@@ -45,7 +57,13 @@ ORGAN_KEYWORDS = {
     "Liver": ["liver"],
     "Spleen": ["spleen"],
     "Spine": ["vertebra", "spinal", "sacrum"],
-    "Ribcage": ["rib", "sternum", "costal", "ribcage"]
+    "Ribcage": ["rib", "sternum", "costal", "ribcage"],
+    "Thyroid": ["thyroid"],
+    "Trachea": ["trachea"],
+    "Adrenal": ["adrenal"],
+    "Gallbladder": ["gallbladder"],
+    "Pancreas": ["pancreas"],
+    "Prostate": ["prostate"]
 }
 
 # Default settings
