@@ -275,7 +275,6 @@ This project is licensed under the Educational License - see the [LICENSE](LICEN
 ## 📞 Support
 
 - **Issues**: Report bugs and request features on [GitHub Issues](https://github.com/youssefh4/MPR-viewer/issues)
-- **Discussions**: Join community discussions on [GitHub Discussions](https://github.com/youssefh4/MPR-viewer/discussions)
 
 ## 🔮 Roadmap
 
